@@ -1597,7 +1597,7 @@ with st.sidebar:
     st.markdown("""
     <div class="sidebar-header">
         <div class="sidebar-logo">📊</div>
-            <div>
+        <div>
             <div class="sidebar-title">Ptengine Survey</div>
             <div class="sidebar-subtitle">调研数据洞察平台</div>
         </div>
@@ -1626,14 +1626,13 @@ with st.sidebar:
     
     # 问题映射配置 (Ptengine 表单配置)
     with st.expander("🔗 问题映射配置", expanded=False):
-        st.caption("将简写字段名映射到完整问题")
+        st.caption("输入 Asset ID 自动获取问题映射")
         
         # 解析配置的函数
         def parse_ptengine_config(config_content):
             """解析 Ptengine 表单配置，提取问题映射"""
             question_map = {}
             try:
-                # 尝试多种配置格式
                 if 'pages' in config_content:
                     for page in config_content.get('pages', []):
                         for element in page.get('elements', []):
@@ -1647,19 +1646,12 @@ with st.sidebar:
                         question_text = element.get('title', '') or element.get('label', '') or field_name
                         if field_name:
                             question_map[field_name] = question_text
-                elif 'fields' in config_content:
-                    for field in config_content.get('fields', []):
-                        field_name = field.get('name', '') or field.get('id', '')
-                        question_text = field.get('title', '') or field.get('label', '') or field.get('question', '') or field_name
-                        if field_name:
-                            question_map[field_name] = question_text
-                # 递归搜索所有包含 name 和 title 的对象
                 if not question_map:
                     def find_fields(obj, result):
                         if isinstance(obj, dict):
-                            if 'name' in obj and ('title' in obj or 'label' in obj or 'question' in obj):
+                            if 'name' in obj and ('title' in obj or 'label' in obj):
                                 name = obj.get('name', '')
-                                title = obj.get('title', '') or obj.get('label', '') or obj.get('question', '') or name
+                                title = obj.get('title', '') or obj.get('label', '') or name
                                 if name:
                                     result[name] = title
                             for v in obj.values():
@@ -1668,101 +1660,62 @@ with st.sidebar:
                             for item in obj:
                                 find_fields(item, result)
                     find_fields(config_content, question_map)
-            except:
+            except Exception:
                 pass
             return question_map
         
-        # 最简单方式：直接输入 Asset ID
+        # 简化输入：Asset ID 或链接
         col_input, col_btn = st.columns([3, 1])
         with col_input:
             asset_input = st.text_input(
-                "Asset ID 或链接",
+                "Asset ID",
                 placeholder="cmisa0xpf0005981yg5jpife1",
-                help="粘贴 Asset ID、链接或 JS 代码",
+                help="粘贴 Asset ID 或链接",
                 key="asset_id_input",
                 label_visibility="collapsed"
             )
         with col_btn:
-            fetch_btn = st.button("🔍 获取", key="fetch_asset_btn", use_container_width=True)
+            fetch_btn = st.button("获取", key="fetch_asset_btn", use_container_width=True)
         
         if fetch_btn and asset_input:
-            # 智能识别输入类型
             import re
             asset_id = None
-            
-            # 1. 尝试从链接提取
             url_match = re.search(r'/assets/([^/]+)/', asset_input)
             if url_match:
                 asset_id = url_match.group(1)
-            # 2. 尝试从 JS 代码提取
             elif 'assetId' in asset_input:
                 js_match = re.search(r"assetId\s*=\s*['\"]([^'\"]+)['\"]", asset_input)
                 if js_match:
                     asset_id = js_match.group(1)
-            # 3. 直接当作 Asset ID (放宽匹配条件)
             else:
-                # 清理输入，去除空格和引号
                 cleaned = asset_input.strip().strip("'\"")
                 if len(cleaned) >= 10:
                     asset_id = cleaned
             
             if asset_id:
                 config_url = f"https://comp.ptengine.com/assets/{asset_id}/latest/config.json"
-                
                 try:
-                    with st.spinner("正在获取..."):
+                    with st.spinner("获取中..."):
                         response = requests.get(config_url, timeout=15)
                         if response.status_code == 200:
                             config_content = response.json()
                             question_map = parse_ptengine_config(config_content)
-                            
                             if question_map:
                                 st.session_state['question_map'] = question_map
-                                st.session_state['loaded_asset_id'] = asset_id
                                 st.success(f"✅ 已加载 {len(question_map)} 个问题")
                             else:
-                                st.warning("⚠️ 配置中未找到问题")
+                                st.warning("⚠️ 未找到问题映射")
                         else:
                             st.error(f"获取失败: HTTP {response.status_code}")
-                except requests.exceptions.Timeout:
-                    st.error("⏱️ 请求超时，请重试")
-                except requests.exceptions.ConnectionError:
-                    st.error("🔌 网络连接失败")
                 except Exception as e:
-                    st.error(f"❌ 获取失败: {str(e)[:50]}")
+                    st.error(f"获取失败: {str(e)[:50]}")
             else:
                 st.warning("⚠️ 无法识别 Asset ID")
         
         # 显示当前状态
-        if 'loaded_asset_id' in st.session_state:
-            st.caption(f"📋 当前: {st.session_state['loaded_asset_id'][:20]}...")
-        
-        # 高级选项
-        with st.expander("更多选项", expanded=False):
-            manual_map = st.text_area(
-                "手动映射 (字段名=问题)",
-                placeholder="Age=What is your age?",
-                height=80,
-                key="manual_question_map"
-            )
-            
-            if manual_map:
-                question_map = {}
-                for line in manual_map.strip().split('\n'):
-                    if '=' in line:
-                        key, value = line.split('=', 1)
-                        question_map[key.strip()] = value.strip()
-                if question_map:
-                    existing = st.session_state.get('question_map', {})
-                    existing.update(question_map)
-                    st.session_state['question_map'] = existing
-                    st.success(f"✅ 已添加 {len(question_map)} 个映射")
-        
-        # 显示当前映射
         if 'question_map' in st.session_state and st.session_state['question_map']:
-            st.markdown("---")
-            st.caption(f"📋 当前已有 {len(st.session_state['question_map'])} 个映射")
-            if st.button("🗑️ 清除映射", key="clear_map_btn"):
+            st.caption(f"📋 已加载 {len(st.session_state['question_map'])} 个问题映射")
+            if st.button("🗑️ 清除", key="clear_map_btn"):
                 st.session_state['question_map'] = {}
                 st.success("已清除")
     
@@ -2319,7 +2272,7 @@ if uploaded_file:
             with kpi_cols[1]:
                 if nps_score is not None:
                     delta_class = "positive" if nps_score > 0 else ("negative" if nps_score < 0 else "neutral")
-                st.markdown(f"""
+                    st.markdown(f"""
                     <div class="kpi-card">
                         <div class="kpi-label">NPS 净推荐值</div>
                         <div class="kpi-value">{nps_score}</div>
@@ -2332,8 +2285,8 @@ if uploaded_file:
                         <div class="kpi-label">问题数量</div>
                         <div class="kpi-value">{total_questions}</div>
                         <span class="kpi-delta neutral">个字段</span>
-                </div>
-                """, unsafe_allow_html=True)
+                    </div>
+                    """, unsafe_allow_html=True)
             
             with kpi_cols[2]:
                 st.markdown(f"""
@@ -2372,7 +2325,7 @@ if uploaded_file:
                             完整度: {quick_summary['completeness']:.1f}%
                         </span>
                     </div>
-                        </div>
+                </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; margin-top: 1rem;">
                     {''.join([f'<div style="background: var(--gray-50); padding: 0.75rem 1rem; border-radius: var(--radius); font-size: 0.85rem; color: var(--gray-800); border: 1px solid var(--gray-200);">{finding}</div>' for finding in quick_summary['findings']])}
                 </div>
@@ -2538,7 +2491,7 @@ if uploaded_file:
                                 st.markdown(f"### 📌 {col_select}")
                                 st.caption(f"📝 完整问题: {full_question}")
                             else:
-                            st.markdown(f"### 📌 {col_select}")
+                                st.markdown(f"### 📌 {col_select}")
                 
                             # 智能判断图表类型
                             is_numeric = pd.api.types.is_numeric_dtype(df[col_select])
@@ -2917,18 +2870,18 @@ if uploaded_file:
                                             )
                                         )])
                                         
-                                            fig.update_layout(
+                                        fig.update_layout(
                                             title=f"🥧 {col_select} 占比分布",
                                             showlegend=show_legend,
                                             legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5, font=dict(size=9)) if show_legend else dict(font=dict(size=9)),
-                                                plot_bgcolor='rgba(0,0,0,0)',
-                                                paper_bgcolor='rgba(0,0,0,0)',
-                                                font=dict(size=12),
+                                            plot_bgcolor='rgba(0,0,0,0)',
+                                            paper_bgcolor='rgba(0,0,0,0)',
+                                            font=dict(size=12),
                                             height=chart_height,
                                             margin=dict(t=50, b=30 if not show_legend else 80, l=20, r=20)
-                                            )
+                                        )
                                         
-                                            st.plotly_chart(fig, use_container_width=True)
+                                        st.plotly_chart(fig, use_container_width=True)
                                         
                                         # 数据明细放在图表下方，使用表格形式
                                         with st.expander("📋 查看数据明细", expanded=False):
@@ -3696,36 +3649,36 @@ if uploaded_file:
                 x_index = 0
                 y_index = 1 if len(df.columns) > 1 else 0
                 chart_index = 2  # 默认热力图
-                        
-                        form_col1, form_col2, form_col3 = st.columns(3)
-                        with form_col1:
+                
+                form_col1, form_col2, form_col3 = st.columns(3)
+                with form_col1:
                     new_x_axis = st.selectbox(
                         "📊 X 轴 (自变量)", 
                         df.columns.tolist(), 
                         index=x_index, 
                         key="cross_x_manual"
                     )
-                        with form_col2:
+                with form_col2:
                     new_y_axis = st.selectbox(
                         "📈 Y 轴 (因变量)", 
                         df.columns.tolist(), 
                         index=y_index, 
                         key="cross_y_manual"
                     )
-                        with form_col3:
-                            new_chart_type = st.selectbox(
-                                "🎨 图表类型", 
+                with form_col3:
+                    new_chart_type = st.selectbox(
+                        "🎨 图表类型", 
                         chart_options,
                         index=chart_index,
                         key="cross_chart_manual"
-                            )
-                        
-                        # 可选参数
+                    )
+                
+                # 可选参数
                 opt_col1, opt_col2 = st.columns(2)
                 with opt_col1:
                     color_options = ["无"] + df.columns.tolist()
-                            new_color_col = st.selectbox(
-                                "🎨 颜色分组 (可选)", 
+                    new_color_col = st.selectbox(
+                        "🎨 颜色分组 (可选)", 
                         color_options,
                         index=0,
                         help="为数据点添加颜色分组",
@@ -3744,93 +3697,93 @@ if uploaded_file:
                 
                 # 聚合方式（仅柱状图需要）
                 new_agg_func = "🔢 计数"
-                        if "柱状图" in new_chart_type:
-                            y_is_numeric = pd.api.types.is_numeric_dtype(df[new_y_axis])
-                            if y_is_numeric:
-                                new_agg_func = st.radio(
-                                    "📊 聚合方式", 
-                                    ["📊 平均值", "➕ 总和", "🔢 计数"], 
-                                    horizontal=True,
+                if "柱状图" in new_chart_type:
+                    y_is_numeric = pd.api.types.is_numeric_dtype(df[new_y_axis])
+                    if y_is_numeric:
+                        new_agg_func = st.radio(
+                            "📊 聚合方式", 
+                            ["📊 平均值", "➕ 总和", "🔢 计数"], 
+                            horizontal=True,
                             key="cross_agg_manual"
                         )
                 
-                    st.markdown("---")
-                    
+                st.markdown("---")
+                
                 # 直接生成图表（实时响应，无需点击按钮）
-                            
-                            # 颜色方案映射
-                            color_map = {
-                                "紫色 Purples": ("Purples", px.colors.qualitative.Pastel),
-                                "蓝色 Blues": ("Blues", px.colors.qualitative.Safe),
-                                "绿色 Greens": ("Greens", px.colors.qualitative.Prism),
-                                "橙色 Oranges": ("Oranges", px.colors.qualitative.Bold),
-                                "红色 Reds": ("Reds", px.colors.qualitative.Vivid),
-                                "粉色 Pinkyl": ("Pinkyl", px.colors.qualitative.Pastel),
-                                "青色 Teal": ("Teal", px.colors.qualitative.Set2),
-                                "彩虹 Rainbow": ("Rainbow", px.colors.qualitative.Vivid)
-                            }
-                            
+                
+                # 颜色方案映射
+                color_map = {
+                    "紫色 Purples": ("Purples", px.colors.qualitative.Pastel),
+                    "蓝色 Blues": ("Blues", px.colors.qualitative.Safe),
+                    "绿色 Greens": ("Greens", px.colors.qualitative.Prism),
+                    "橙色 Oranges": ("Oranges", px.colors.qualitative.Bold),
+                    "红色 Reds": ("Reds", px.colors.qualitative.Vivid),
+                    "粉色 Pinkyl": ("Pinkyl", px.colors.qualitative.Pastel),
+                    "青色 Teal": ("Teal", px.colors.qualitative.Set2),
+                    "彩虹 Rainbow": ("Rainbow", px.colors.qualitative.Vivid)
+                }
+                
                 color_scale, color_discrete_seq = color_map.get(new_color_scheme, ("Purples", px.colors.qualitative.Pastel))
-                            
-                            try:
+                
+                try:
                     fig = None
                     agg_label = "计数"
                     
                     if "散点图" in new_chart_type:
-                                    st.info("💡 **适用场景**: 查看两个数值变量的相关性")
-                                    fig = px.scatter(
+                        st.info("💡 **适用场景**: 查看两个数值变量的相关性")
+                        fig = px.scatter(
                             df, x=new_x_axis, y=new_y_axis, 
                             color=new_color_col if new_color_col else None, 
                             title=f"📍 {new_x_axis} 与 {new_y_axis} 散点图",
-                                        color_discrete_sequence=color_discrete_seq
-                                    )
-                                    fig.update_traces(marker=dict(size=8, opacity=0.7))
-                                
+                            color_discrete_sequence=color_discrete_seq
+                        )
+                        fig.update_traces(marker=dict(size=8, opacity=0.7))
+                    
                     elif "箱线图" in new_chart_type:
-                                    st.info("💡 **适用场景**: 对比不同类别的数值分布")
-                                    fig = px.box(
+                        st.info("💡 **适用场景**: 对比不同类别的数值分布")
+                        fig = px.box(
                             df, x=new_x_axis, y=new_y_axis, 
                             color=new_color_col if new_color_col else None, 
                             title=f"📦 {new_x_axis} 下的 {new_y_axis} 分布",
-                                        color_discrete_sequence=color_discrete_seq
-                                    )
+                            color_discrete_sequence=color_discrete_seq
+                        )
 
                     elif "柱状图" in new_chart_type:
-                                    st.info("💡 **适用场景**: 对比不同类别的数值总和或平均值")
-                                    
+                        st.info("💡 **适用场景**: 对比不同类别的数值总和或平均值")
+                        
                         y_is_numeric = pd.api.types.is_numeric_dtype(df[new_y_axis])
                         
                         if y_is_numeric and new_agg_func and "平均值" in str(new_agg_func):
                             grouped = df.groupby(new_x_axis)[new_y_axis].mean().reset_index()
-                                            agg_label = "平均值"
+                            agg_label = "平均值"
                             y_axis_display = new_y_axis
                         elif y_is_numeric and new_agg_func and "总和" in str(new_agg_func):
                             grouped = df.groupby(new_x_axis)[new_y_axis].sum().reset_index()
-                                            agg_label = "总和"
+                            agg_label = "总和"
                             y_axis_display = new_y_axis
-                                        else:
+                        else:
                             grouped = df.groupby(new_x_axis).size().reset_index(name='count')
-                                        y_axis_display = 'count'
-                                        agg_label = "计数"
-                                    
-                                    fig = px.bar(
+                            y_axis_display = 'count'
+                            agg_label = "计数"
+                        
+                        fig = px.bar(
                             grouped, x=new_x_axis, y=y_axis_display, 
                             title=f"📊 {new_x_axis} vs {new_y_axis} ({agg_label})",
-                                        color=y_axis_display,
-                                        color_continuous_scale=color_scale
-                                    )
+                            color=y_axis_display,
+                            color_continuous_scale=color_scale
+                        )
 
                     elif "热力图" in new_chart_type:
-                                    st.info("💡 **适用场景**: 查看两个分类变量的交叉密度")
+                        st.info("💡 **适用场景**: 查看两个分类变量的交叉密度")
                         crosstab = pd.crosstab(df[new_x_axis], df[new_y_axis])
-                                    fig = px.imshow(
-                                        crosstab, 
-                                        text_auto=True, 
+                        fig = px.imshow(
+                            crosstab, 
+                            text_auto=True, 
                             title=f"🔥 {new_x_axis} 与 {new_y_axis} 热力分布",
-                                        color_continuous_scale=color_scale,
-                                        aspect="auto"
-                                    )
-
+                            color_continuous_scale=color_scale,
+                            aspect="auto"
+                        )
+                    
                     else:
                         st.warning(f"未识别的图表类型: {new_chart_type}，使用默认散点图")
                         fig = px.scatter(
@@ -3840,52 +3793,52 @@ if uploaded_file:
 
                     # 统一图表样式并显示
                     if fig is not None:
-                                fig.update_layout(
-                                    plot_bgcolor='rgba(0,0,0,0)',
-                                    paper_bgcolor='rgba(0,0,0,0)',
-                                    font=dict(size=12),
-                                    title_font_size=16,
+                        fig.update_layout(
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            font=dict(size=12),
+                            title_font_size=16,
                             height=450
-                                )
+                        )
                         st.plotly_chart(fig, use_container_width=True, key="cross_chart_main")
-
+                    
                     # 自动解读
-                                insight_text = ""
+                    insight_text = ""
                     if "散点图" in new_chart_type:
                         if pd.api.types.is_numeric_dtype(df[new_x_axis]) and pd.api.types.is_numeric_dtype(df[new_y_axis]):
                             corr = df[new_x_axis].corr(df[new_y_axis])
-                                        if abs(corr) > 0.7:
-                                            direction = "正" if corr > 0 else "负"
+                            if abs(corr) > 0.7:
+                                direction = "正" if corr > 0 else "负"
                                 insight_text = f"🔗 两变量呈<strong>强{direction}相关</strong>(r={corr:.2f})"
-                                        elif abs(corr) > 0.4:
-                                            direction = "正" if corr > 0 else "负"
-                                            insight_text = f"🔗 两变量呈<strong>中等{direction}相关</strong>(r={corr:.2f})"
-                                        else:
+                            elif abs(corr) > 0.4:
+                                direction = "正" if corr > 0 else "负"
+                                insight_text = f"🔗 两变量呈<strong>中等{direction}相关</strong>(r={corr:.2f})"
+                            else:
                                 insight_text = f"🔗 两变量相关性较弱(r={corr:.2f})"
                     elif "箱线图" in new_chart_type:
                         if pd.api.types.is_numeric_dtype(df[new_y_axis]):
                             groups = df.groupby(new_x_axis)[new_y_axis].agg(['mean', 'std'])
                             if not groups.empty:
-                                    max_group = groups['mean'].idxmax()
-                                    min_group = groups['mean'].idxmin()
+                                max_group = groups['mean'].idxmax()
+                                min_group = groups['mean'].idxmin()
                                 insight_text = f"📊 <strong>{max_group}</strong>的{new_y_axis}均值最高,<strong>{min_group}</strong>最低"
                     elif "柱状图" in new_chart_type:
                         insight_text = f"📊 展示了{new_x_axis}各类别下{new_y_axis}的{agg_label}对比"
                     elif "热力图" in new_chart_type:
                         crosstab_temp = pd.crosstab(df[new_x_axis], df[new_y_axis])
                         if not crosstab_temp.empty:
-                                    max_cell = crosstab_temp.stack().idxmax()
-                                    insight_text = f"🔥 <strong>{max_cell[0]}</strong>与<strong>{max_cell[1]}</strong>组合出现频率最高"
-                                
-                                if insight_text:
-                                    st.markdown(f"""
-                                    <div style="background: linear-gradient(135deg, #f0f4ff 0%, #f5f0ff 100%); padding: 0.8rem 1rem; border-radius: 8px; margin-top: 0.5rem; border-left: 4px solid #667eea;">
-                                        <span style="font-weight: 600; color: #333;">💡 快速解读:</span> {insight_text}
-                                    </div>
-                                    """, unsafe_allow_html=True)
-                                
-                            except Exception as e:
-                                st.error(f"❌ 生成图表时出错: {e}")
+                            max_cell = crosstab_temp.stack().idxmax()
+                            insight_text = f"🔥 <strong>{max_cell[0]}</strong>与<strong>{max_cell[1]}</strong>组合出现频率最高"
+                    
+                    if insight_text:
+                        st.markdown(f"""
+                        <div style="background: linear-gradient(135deg, #f0f4ff 0%, #f5f0ff 100%); padding: 0.8rem 1rem; border-radius: 8px; margin-top: 0.5rem; border-left: 4px solid #667eea;">
+                            <span style="font-weight: 600; color: #333;">💡 快速解读:</span> {insight_text}
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                except Exception as e:
+                    st.error(f"❌ 生成图表时出错: {e}")
 
             with tab4:
                 # 差异化价值展示
@@ -4042,31 +3995,31 @@ if uploaded_file:
                     # 输入框 - 使用 form 避免刷新
                     st.markdown("---")
                     with st.form(key="chat_form", clear_on_submit=True):
-                    user_input = st.text_area(
-                        "输入你的问题:",
-                        placeholder="例如: 这个数据集的主要特征是什么?",
+                        user_input = st.text_area(
+                            "输入你的问题:",
+                            placeholder="例如: 这个数据集的主要特征是什么?",
                             height=80,
                             key="user_input_form"
-                    )
-                    
-                    col_send, col_clear = st.columns([3, 1])
-                    with col_send:
+                        )
+                        
+                        col_send, col_clear = st.columns([3, 1])
+                        with col_send:
                             submit_btn = st.form_submit_button("📤 发送", use_container_width=True)
                         with col_clear:
                             clear_btn = st.form_submit_button("🗑️ 清空", use_container_width=True)
                         
                         # 在 form 内处理提交，避免状态循环
                         if submit_btn and user_input.strip():
-                                st.session_state.chat_history.append({
-                                    'role': 'user',
+                            st.session_state.chat_history.append({
+                                'role': 'user',
                                 'content': user_input.strip()
-                                })
+                            })
                             answer = generate_ai_response(user_input.strip(), df)
-                                    st.session_state.chat_history.append({
-                                        'role': 'assistant',
-                                        'content': answer
-                                    })
-                    
+                            st.session_state.chat_history.append({
+                                'role': 'assistant',
+                                'content': answer
+                            })
+                        
                         if clear_btn:
                             st.session_state.chat_history = []
 
