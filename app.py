@@ -1626,22 +1626,14 @@ with st.sidebar:
     
     # 问题映射配置 (Ptengine 表单配置)
     with st.expander("🔗 问题映射配置", expanded=False):
-        st.caption("上传 Ptengine 表单配置，将简写字段名映射到完整问题")
+        st.caption("将简写字段名映射到完整问题")
         
-        config_file = st.file_uploader(
-            "上传 config.json",
-            type=["json"],
-            help="从 Ptengine 导出的表单配置文件",
-            key="config_json_upload"
-        )
-        
-        if config_file:
+        # 解析配置的函数
+        def parse_ptengine_config(config_content):
+            """解析 Ptengine 表单配置，提取问题映射"""
+            question_map = {}
             try:
-                config_content = json.loads(config_file.read().decode('utf-8'))
-                # 解析 supa-form 配置，提取问题映射
-                question_map = {}
-                
-                # 尝试从配置中提取问题
+                # 尝试多种配置格式
                 if 'pages' in config_content:
                     for page in config_content.get('pages', []):
                         for element in page.get('elements', []):
@@ -1661,39 +1653,162 @@ with st.sidebar:
                         question_text = field.get('title', '') or field.get('label', '') or field.get('question', '') or field_name
                         if field_name:
                             question_map[field_name] = question_text
-                
-                if question_map:
-                    st.session_state['question_map'] = question_map
-                    st.success(f"✅ 已解析 {len(question_map)} 个问题映射")
-                    with st.expander("查看映射", expanded=False):
-                        for k, v in question_map.items():
-                            st.text(f"{k} → {v[:50]}...")
-                else:
-                    st.warning("⚠️ 未找到问题映射，请检查配置格式")
-            except Exception as e:
-                st.error(f"解析配置失败: {e}")
-        
-        st.markdown("---")
-        st.caption("或手动输入映射 (每行一个: 字段名=完整问题)")
-        manual_map = st.text_area(
-            "手动映射",
-            placeholder="Age=What is your age?\nWorkRole=What is your work role?",
-            height=100,
-            key="manual_question_map"
-        )
-        
-        if manual_map:
-            try:
-                question_map = {}
-                for line in manual_map.strip().split('\n'):
-                    if '=' in line:
-                        key, value = line.split('=', 1)
-                        question_map[key.strip()] = value.strip()
-                if question_map:
-                    st.session_state['question_map'] = question_map
-                    st.success(f"✅ 已保存 {len(question_map)} 个映射")
+                # 递归搜索所有包含 name 和 title 的对象
+                if not question_map:
+                    def find_fields(obj, result):
+                        if isinstance(obj, dict):
+                            if 'name' in obj and ('title' in obj or 'label' in obj or 'question' in obj):
+                                name = obj.get('name', '')
+                                title = obj.get('title', '') or obj.get('label', '') or obj.get('question', '') or name
+                                if name:
+                                    result[name] = title
+                            for v in obj.values():
+                                find_fields(v, result)
+                        elif isinstance(obj, list):
+                            for item in obj:
+                                find_fields(item, result)
+                    find_fields(config_content, question_map)
             except:
                 pass
+            return question_map
+        
+        # 方式选择
+        config_method = st.radio(
+            "选择配置方式",
+            ["🔗 粘贴链接", "📝 粘贴JS代码", "📄 上传JSON", "✏️ 手动输入"],
+            horizontal=True,
+            key="config_method"
+        )
+        
+        if config_method == "🔗 粘贴链接":
+            st.caption("粘贴 Ptengine 表单链接，自动获取配置")
+            ptengine_url = st.text_input(
+                "Ptengine 链接",
+                placeholder="https://comp.ptengine.com/assets/xxx/latest/index.html",
+                key="ptengine_url_input"
+            )
+            
+            if ptengine_url and st.button("🔍 获取配置", key="fetch_config_btn"):
+                try:
+                    # 从链接提取 assetId
+                    import re
+                    match = re.search(r'/assets/([^/]+)/', ptengine_url)
+                    if match:
+                        asset_id = match.group(1)
+                        config_url = f"https://comp.ptengine.com/assets/{asset_id}/latest/config.json"
+                        
+                        with st.spinner("正在获取配置..."):
+                            response = requests.get(config_url, timeout=10)
+                            if response.status_code == 200:
+                                config_content = response.json()
+                                question_map = parse_ptengine_config(config_content)
+                                
+                                if question_map:
+                                    st.session_state['question_map'] = question_map
+                                    st.success(f"✅ 已解析 {len(question_map)} 个问题映射")
+                                    for k, v in list(question_map.items())[:5]:
+                                        st.caption(f"• {k} → {v[:40]}...")
+                                    if len(question_map) > 5:
+                                        st.caption(f"... 还有 {len(question_map)-5} 个")
+                                else:
+                                    st.warning("⚠️ 配置中未找到问题映射")
+                            else:
+                                st.error(f"获取配置失败: HTTP {response.status_code}")
+                    else:
+                        st.error("无法从链接中提取 assetId")
+                except Exception as e:
+                    st.error(f"获取配置失败: {e}")
+        
+        elif config_method == "📝 粘贴JS代码":
+            st.caption("粘贴 Ptengine 表单的 JS 代码")
+            js_code = st.text_area(
+                "JS 代码",
+                placeholder="const assetBundle = '@hayadev/supa-form';\nconst assetId = 'xxx';...",
+                height=150,
+                key="js_code_input"
+            )
+            
+            if js_code and st.button("🔍 解析代码", key="parse_js_btn"):
+                try:
+                    import re
+                    # 提取 assetId
+                    asset_match = re.search(r"assetId\s*=\s*['\"]([^'\"]+)['\"]", js_code)
+                    if asset_match:
+                        asset_id = asset_match.group(1)
+                        config_url = f"https://comp.ptengine.com/assets/{asset_id}/latest/config.json"
+                        
+                        with st.spinner("正在获取配置..."):
+                            response = requests.get(config_url, timeout=10)
+                            if response.status_code == 200:
+                                config_content = response.json()
+                                question_map = parse_ptengine_config(config_content)
+                                
+                                if question_map:
+                                    st.session_state['question_map'] = question_map
+                                    st.success(f"✅ 已解析 {len(question_map)} 个问题映射")
+                                    for k, v in list(question_map.items())[:5]:
+                                        st.caption(f"• {k} → {v[:40]}...")
+                                else:
+                                    st.warning("⚠️ 配置中未找到问题映射")
+                            else:
+                                st.error(f"获取配置失败: HTTP {response.status_code}")
+                    else:
+                        st.error("无法从代码中提取 assetId")
+                except Exception as e:
+                    st.error(f"解析失败: {e}")
+        
+        elif config_method == "📄 上传JSON":
+            config_file = st.file_uploader(
+                "上传 config.json",
+                type=["json"],
+                help="从 Ptengine 导出的表单配置文件",
+                key="config_json_upload"
+            )
+            
+            if config_file:
+                try:
+                    config_content = json.loads(config_file.read().decode('utf-8'))
+                    question_map = parse_ptengine_config(config_content)
+                    
+                    if question_map:
+                        st.session_state['question_map'] = question_map
+                        st.success(f"✅ 已解析 {len(question_map)} 个问题映射")
+                        for k, v in list(question_map.items())[:5]:
+                            st.caption(f"• {k} → {v[:40]}...")
+                    else:
+                        st.warning("⚠️ 未找到问题映射")
+                except Exception as e:
+                    st.error(f"解析失败: {e}")
+        
+        else:  # 手动输入
+            st.caption("每行一个映射: 字段名=完整问题")
+            manual_map = st.text_area(
+                "手动映射",
+                placeholder="Age=What is your age?\nWorkRole=What is your work role?",
+                height=100,
+                key="manual_question_map"
+            )
+            
+            if manual_map:
+                try:
+                    question_map = {}
+                    for line in manual_map.strip().split('\n'):
+                        if '=' in line:
+                            key, value = line.split('=', 1)
+                            question_map[key.strip()] = value.strip()
+                    if question_map:
+                        st.session_state['question_map'] = question_map
+                        st.success(f"✅ 已保存 {len(question_map)} 个映射")
+                except:
+                    pass
+        
+        # 显示当前映射
+        if 'question_map' in st.session_state and st.session_state['question_map']:
+            st.markdown("---")
+            st.caption(f"📋 当前已有 {len(st.session_state['question_map'])} 个映射")
+            if st.button("🗑️ 清除映射", key="clear_map_btn"):
+                st.session_state['question_map'] = {}
+                st.success("已清除")
     
     # 全局筛选器
     st.markdown('<div class="sidebar-section-title">🎯 全局过滤</div>', unsafe_allow_html=True)
