@@ -1588,13 +1588,78 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    # 数据上传区 - 紧凑标题
-    st.caption("📁 数据上传")
-    uploaded_file = st.file_uploader(
-        "上传调研数据 (Excel/CSV)", 
-        type=["csv", "xlsx", "pdf", "docx"],
-        help="支持格式: CSV, Excel, PDF, Word | 最大 200MB"
+    # 数据来源选择
+    st.caption("📁 数据来源")
+    data_source = st.radio(
+        "选择数据来源",
+        ["📤 上传文件", "🔗 报告链接"],
+        key="data_source_radio",
+        horizontal=True,
+        label_visibility="collapsed"
     )
+    
+    uploaded_file = None
+    
+    if data_source == "🔗 报告链接":
+        st.markdown("""
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 0.5rem; padding: 0.5rem; margin-bottom: 0.5rem; font-size: 0.7rem;">
+            <strong>💡 提示</strong>: 粘贴 Ptengine BI 报告链接
+        </div>
+        """, unsafe_allow_html=True)
+        
+        report_url = st.text_input(
+            "报告链接",
+            placeholder="https://ecbi.ptengine.com/public/question/xxx",
+            key="ptengine_report_url",
+            label_visibility="collapsed"
+        )
+        
+        if report_url and "ecbi.ptengine.com" in report_url:
+            import re as re_module
+            uuid_match = re_module.search(r'/public/question/([a-f0-9-]+)', report_url)
+            if uuid_match:
+                question_uuid = uuid_match.group(1)
+                
+                if st.button("🔄 获取数据", key="fetch_ptengine_data", use_container_width=True):
+                    with st.spinner("正在获取数据..."):
+                        try:
+                            api_urls = [
+                                f"https://ecbi.ptengine.com/api/public/question/{question_uuid}/export",
+                                f"https://ecbi.ptengine.com/api/public/question/{question_uuid}/data",
+                                f"https://ecbi.ptengine.com/api/v1/public/question/{question_uuid}",
+                            ]
+                            
+                            data_fetched = False
+                            for api_url in api_urls:
+                                try:
+                                    response = requests.get(api_url, timeout=10)
+                                    if response.status_code == 200:
+                                        content_type = response.headers.get('content-type', '')
+                                        if 'json' in content_type:
+                                            st.session_state['ptengine_json_data'] = response.json()
+                                            st.success("✅ 成功获取数据！")
+                                            data_fetched = True
+                                            break
+                                        elif 'csv' in content_type or 'text' in content_type:
+                                            st.session_state['ptengine_csv_data'] = response.text
+                                            st.success("✅ 成功获取数据！")
+                                            data_fetched = True
+                                            break
+                                except Exception:
+                                    continue
+                            
+                            if not data_fetched:
+                                st.warning("⚠️ 无法直接获取数据，请在报告页面导出 CSV 后上传")
+                        except Exception as e:
+                            st.error(f"获取失败: {str(e)}")
+            else:
+                st.caption("⚠️ 请输入有效链接")
+    else:
+        uploaded_file = st.file_uploader(
+            "上传调研数据 (Excel/CSV)", 
+            type=["csv", "xlsx", "pdf", "docx"],
+            help="支持格式: CSV, Excel, PDF, Word | 最大 200MB"
+        )
     
     if uploaded_file:
         st.markdown(f"""
