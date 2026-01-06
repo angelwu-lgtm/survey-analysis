@@ -1648,29 +1648,29 @@ with st.sidebar:
     with st.expander("🔗 问题映射", expanded=False):
         import re as re_module
         
-        st.caption("① 粘贴表单链接")
+        st.markdown("**① 粘贴表单链接**")
         form_url = st.text_input(
             "链接", placeholder="https://comp.ptengine.com/assets/xxx/latest/index.html",
             key="form_url_input", label_visibility="collapsed"
         )
         
-        config_url = None
         if form_url:
             match = re_module.search(r'/assets/([^/]+)/', form_url)
             if match:
                 config_url = f"https://comp.ptengine.com/assets/{match.group(1)}/latest/config.json"
-                st.caption("② 点击链接打开 → Ctrl+A → Ctrl+C")
-                st.code(config_url)
+                st.markdown("**② 打开链接，Ctrl+A 全选，Ctrl+C 复制**")
+                st.markdown(f"[🔗 点击打开 config.json]({config_url})")
         
-        st.caption("③ 粘贴内容后点击【解析】")
+        st.markdown("**③ 粘贴完整内容**")
+        st.caption("⚠️ 必须 Ctrl+A 全选后复制，不要只复制部分！")
         config_text = st.text_area(
-            "内容", height=60, key="config_text_input", 
-            label_visibility="collapsed", placeholder="粘贴JSON内容..."
+            "内容", height=80, key="config_text_input", 
+            label_visibility="collapsed", placeholder="粘贴完整的 JSON 内容..."
         )
         
         # 添加解析按钮
-        if st.button("🔍 解析", key="parse_config_btn", use_container_width=True):
-            if config_text and len(config_text) > 50:
+        if st.button("🔍 解析配置", key="parse_config_btn", use_container_width=True):
+            if config_text and len(config_text) > 100:
                 question_map = {}
                 matches = re_module.findall(r'"name"\s*:\s*"([^"]+)"[^}]*?"question"\s*:\s*"([^"]+)"', config_text, re_module.DOTALL)
                 for name, question in matches:
@@ -1678,19 +1678,19 @@ with st.sidebar:
                         question_map[name] = question
                 if question_map:
                     st.session_state['question_map'] = question_map
-                    st.success(f"✅ 已加载 {len(question_map)} 个问题")
+                    st.success(f"✅ 成功加载 {len(question_map)} 个问题映射！")
                 else:
-                    st.warning("⚠️ 未找到问题")
+                    st.error("❌ 未找到问题。请确保：\n1. 打开了正确的 config.json 链接\n2. 使用 Ctrl+A 全选了整个页面\n3. 复制的是完整内容（应该很长）")
             else:
-                st.warning("⚠️ 请先粘贴内容")
+                st.warning("⚠️ 内容太短，请确保完整复制")
         
         # 显示当前映射
         if st.session_state.get('question_map'):
-            st.markdown("---")
-            st.caption(f"📋 已加载 {len(st.session_state['question_map'])} 个映射:")
-            for k, v in list(st.session_state['question_map'].items())[:3]:
-                st.caption(f"• {k}: {v[:30]}...")
-            if st.button("🗑️ 清除", key="clear_map"):
+            st.success(f"📋 当前已加载 {len(st.session_state['question_map'])} 个映射")
+            with st.expander("查看映射详情"):
+                for k, v in st.session_state['question_map'].items():
+                    st.caption(f"**{k}**: {v[:60]}...")
+            if st.button("🗑️ 清除映射", key="clear_map"):
                 st.session_state['question_map'] = {}
     
     # 全局筛选器
