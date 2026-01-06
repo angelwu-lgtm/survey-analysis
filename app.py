@@ -2268,8 +2268,8 @@ if uploaded_file:
             
             if cache_key not in st.session_state:
                 # 只在第一次上传时读取数据
-            if file_type == 'csv':
-                uploaded_file.seek(0)
+                if file_type == 'csv':
+                    uploaded_file.seek(0)
                     file_content = uploaded_file.read().decode('utf-8')
                     st.session_state[cache_key] = load_csv_data(file_content, uploaded_file.name)
                 else:
