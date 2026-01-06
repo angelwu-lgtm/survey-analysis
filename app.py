@@ -1372,6 +1372,26 @@ if 'export_sections' not in st.session_state:
 if 'analyzed_data' not in st.session_state:
     st.session_state.analyzed_data = {}
 
+# ========== 长标签换行函数 ==========
+def wrap_label(text, max_len=20):
+    """将长标签换行显示"""
+    text = str(text)
+    if len(text) <= max_len:
+        return text
+    words = text.split(' ')
+    lines = []
+    current = ""
+    for word in words:
+        if len(current) + len(word) + 1 > max_len:
+            if current:
+                lines.append(current)
+            current = word
+        else:
+            current = current + " " + word if current else word
+    if current:
+        lines.append(current)
+    return "<br>".join(lines[:2]) + ("..." if len(lines) > 2 else "")
+
 # ========== 数据缓存函数 - 防止闪烁 ==========
 @st.cache_data(show_spinner=False)
 def load_csv_data(file_content, file_name):
@@ -1626,59 +1646,38 @@ with st.sidebar:
     
     # 问题映射配置
     with st.expander("🔗 问题映射", expanded=False):
-        st.caption("粘贴表单链接，然后复制 config.json 内容")
+        import re as re_module
         
-        # 输入表单链接
+        st.markdown("**① 粘贴表单链接**")
         form_url = st.text_input(
-            "表单链接",
-            placeholder="https://comp.ptengine.com/assets/xxx/latest/index.html",
-            key="form_url_input",
-            label_visibility="collapsed"
+            "链接", placeholder="https://comp.ptengine.com/assets/xxx/latest/index.html",
+            key="form_url_input", label_visibility="collapsed"
         )
         
         if form_url:
-            import re
-            match = re.search(r'/assets/([^/]+)/', form_url)
+            match = re_module.search(r'/assets/([^/]+)/', form_url)
             if match:
-                asset_id = match.group(1)
-                config_url = f"https://comp.ptengine.com/assets/{asset_id}/latest/config.json"
-                st.info("📋 在浏览器打开下方链接，Ctrl+A 全选后 Ctrl+C 复制：")
-                st.code(config_url, language=None)
+                config_url = f"https://comp.ptengine.com/assets/{match.group(1)}/latest/config.json"
+                st.markdown(f'<div style="background:#e8f4fd;padding:8px;border-radius:4px;margin:6px 0;font-size:12px;">② 打开链接 → Ctrl+A全选 → Ctrl+C复制<br><a href="{config_url}" target="_blank" style="word-break:break-all;">{config_url}</a></div>', unsafe_allow_html=True)
         
-        # 粘贴 JSON 内容
-        st.markdown("**粘贴复制的内容：**")
+        st.markdown("**③ 粘贴内容**")
         config_text = st.text_area(
-            "config内容",
-            height=100,
-            key="config_text_input",
-            label_visibility="collapsed"
+            "内容", height=80, key="config_text_input", 
+            label_visibility="collapsed", placeholder="粘贴复制的内容..."
         )
         
         if config_text and len(config_text) > 50:
-            import re
             question_map = {}
-            
-            # Ptengine supa-form 格式: "name":"Age"..."question":"What age range..."
-            # 匹配 name 和 question 字段
-            pattern = r'"name"\s*:\s*"([^"]+)"[^}]*?"question"\s*:\s*"([^"]+)"'
-            matches = re.findall(pattern, config_text, re.DOTALL)
-            
+            matches = re_module.findall(r'"name"\s*:\s*"([^"]+)"[^}]*?"question"\s*:\s*"([^"]+)"', config_text, re_module.DOTALL)
             for name, question in matches:
-                # 过滤系统字段，只保留有效的问题字段
-                if not name.startswith('$') and not name.startswith('_') and not name.startswith('表单页'):
+                if not name.startswith('$') and not name.startswith('表单页'):
                     question_map[name] = question
-            
             if question_map:
                 st.session_state['question_map'] = question_map
-                st.success(f"✅ 解析到 {len(question_map)} 个问题")
-                for k, v in list(question_map.items())[:5]:
-                    display_q = v[:50] + "..." if len(v) > 50 else v
-                    st.caption(f"• **{k}** → {display_q}")
-            else:
-                st.warning("⚠️ 未找到问题映射，请确保复制了完整内容")
+                st.success(f"✅ 已加载 {len(question_map)} 个问题")
         
-        if 'question_map' in st.session_state and st.session_state['question_map']:
-            if st.button("🗑️ 清除", key="clear_map"):
+        if st.session_state.get('question_map'):
+            if st.button("🗑️ 清除映射", key="clear_map"):
                 st.session_state['question_map'] = {}
     
     # 全局筛选器
@@ -3077,56 +3076,25 @@ if uploaded_file:
                                         if len(choice_df) > 0:
                                             choice_df['选择率数值'] = choice_df['选择人数'] / total_respondents * 100
                                             
-                                            # 处理长标签：截断并添加换行
-                                            def wrap_label(text, max_len=25):
-                                                """将长标签截断或换行"""
-                                                if len(str(text)) <= max_len:
-                                                    return str(text)
-                                                # 在合适位置换行
-                                                words = str(text)
-                                                lines = []
-                                                current_line = ""
-                                                for char in words:
-                                                    current_line += char
-                                                    if len(current_line) >= max_len:
-                                                        lines.append(current_line)
-                                                        current_line = ""
-                                                if current_line:
-                                                    lines.append(current_line)
-                                                return "<br>".join(lines[:2]) + ("..." if len(lines) > 2 else "")
-                                            
-                                            choice_df['选项显示'] = choice_df['选项'].apply(wrap_label)
-                                            
                                             fig_choice = go.Figure()
                                             fig_choice.add_trace(go.Bar(
-                                                x=choice_df['选项显示'],
+                                                x=choice_df['选项'],
                                                 y=choice_df['选择人数'],
                                                 text=choice_df.apply(lambda r: f"{r['选择人数']}<br>({r['选择率数值']:.1f}%)", axis=1),
                                                 textposition='outside',
                                                 marker_color=px.colors.qualitative.Set2[:len(choice_df)],
-                                                hovertemplate='<b>%{customdata}</b><br>选择人数: %{y}<extra></extra>',
-                                                customdata=choice_df['选项']  # 完整选项显示在 hover
+                                                hovertemplate='<b>%{x}</b><br>选择人数: %{y}<br>选择率: %{text}<extra></extra>'
                                             ))
-                                            
-                                            # 根据选项数量和长度动态调整图表
-                                            max_label_len = choice_df['选项'].str.len().max()
-                                            chart_height = 450 if max_label_len > 50 else 400
-                                            bottom_margin = 150 if max_label_len > 30 else 100
                                             
                                             fig_choice.update_layout(
                                                 title="各选项被选择次数（可多选）",
                                                 xaxis_title="选项",
                                                 yaxis_title="选择人数",
-                                                height=chart_height,
+                                                height=400,
                                                 plot_bgcolor='rgba(0,0,0,0)',
                                                 paper_bgcolor='rgba(0,0,0,0)',
-                                                xaxis_tickangle=0,  # 保持水平，因为已经换行
-                                                margin=dict(b=bottom_margin, l=50, r=50, t=50),
-                                                xaxis=dict(
-                                                    tickfont=dict(size=10),
-                                                    automargin=True
-                                                ),
-                                                bargap=0.3  # 增加柱子间距
+                                                xaxis_tickangle=-45 if len(choice_df) > 5 else 0,
+                                                margin=dict(b=100)
                                             )
                                             st.plotly_chart(fig_choice, use_container_width=True)
                                             
