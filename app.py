@@ -3146,15 +3146,23 @@ if uploaded_file:
                                                 hovertemplate='<b>%{x}</b><br>选择人数: %{y}<br>选择率: %{text}<extra></extra>'
                                             ))
                                             
+                                            # 处理长标签
+                                            max_label_len = max(len(str(x)) for x in choice_df['选项'])
+                                            if max_label_len > 30:
+                                                # 标签太长，截断显示
+                                                short_labels = [str(x)[:25] + '...' if len(str(x)) > 25 else str(x) for x in choice_df['选项']]
+                                                fig_choice.update_traces(x=short_labels)
+                                            
                                             fig_choice.update_layout(
                                                 title="各选项被选择次数（可多选）",
-                                                xaxis_title="选项",
+                                                xaxis_title="",
                                                 yaxis_title="选择人数",
-                                                height=400,
+                                                height=500,
                                                 plot_bgcolor='rgba(0,0,0,0)',
                                                 paper_bgcolor='rgba(0,0,0,0)',
-                                                xaxis_tickangle=-45 if len(choice_df) > 5 else 0,
-                                                margin=dict(b=100)
+                                                xaxis_tickangle=-45,
+                                                margin=dict(b=180, t=50, l=50, r=20),
+                                                xaxis=dict(tickfont=dict(size=9))
                                             )
                                             st.plotly_chart(fig_choice, use_container_width=True)
                                             
