@@ -1601,9 +1601,11 @@ with st.sidebar:
     uploaded_file = None
     
     if data_source == "🔗 报告链接":
+        # 简化为直接提供导出指引
         st.markdown("""
-        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 0.5rem; padding: 0.5rem; margin-bottom: 0.5rem; font-size: 0.7rem;">
-            <strong>💡 提示</strong>: 粘贴 Ptengine BI 公开报告链接
+        <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 0.5rem; font-size: 0.72rem;">
+            <strong>⚠️ 由于跨域限制，暂不支持直接获取</strong><br>
+            请按以下步骤手动导出数据：
         </div>
         """, unsafe_allow_html=True)
         
@@ -1614,112 +1616,57 @@ with st.sidebar:
             label_visibility="collapsed"
         )
         
-        if report_url and "ecbi.ptengine.com" in report_url:
-            import re as re_module
-            uuid_match = re_module.search(r'/public/question/([a-f0-9-]+)', report_url)
+        if report_url:
+            st.markdown("""
+            <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 0.5rem; padding: 0.75rem; font-size: 0.72rem;">
+                <strong>📋 导出步骤：</strong><br>
+                <span style="color: #059669;">①</span> 点击下方按钮打开报告<br>
+                <span style="color: #059669;">②</span> 点击页面 <strong>导出</strong> 按钮<br>
+                <span style="color: #059669;">③</span> 下载 CSV/Excel 文件<br>
+                <span style="color: #059669;">④</span> 切换「上传文件」导入
+            </div>
+            """, unsafe_allow_html=True)
             
-            if uuid_match:
-                question_uuid = uuid_match.group(1)
-                
-                if st.button("🔄 获取数据", key="fetch_ptengine_data", use_container_width=True):
-                    with st.spinner("正在尝试获取数据..."):
-                        data_fetched = False
+            st.link_button("🔗 打开报告页面", report_url, use_container_width=True)
+        
+        st.markdown("---")
+        
+        # 提供粘贴表格数据的选项
+        with st.expander("📋 或：粘贴表格数据", expanded=False):
+            st.caption("从报告页面复制表格数据，粘贴到下方")
+            pasted_data = st.text_area(
+                "粘贴数据",
+                height=100,
+                placeholder="从网页复制表格后粘贴到这里...\n支持 Tab 分隔或逗号分隔的数据",
+                key="pasted_table_data",
+                label_visibility="collapsed"
+            )
+            
+            if pasted_data and st.button("📊 解析数据", key="parse_pasted_data", use_container_width=True):
+                try:
+                    # 尝试解析粘贴的数据
+                    lines = pasted_data.strip().split('\n')
+                    if len(lines) > 1:
+                        # 检测分隔符（Tab 或逗号）
+                        if '\t' in lines[0]:
+                            sep = '\t'
+                        else:
+                            sep = ','
                         
-                        # 尝试多种可能的 API 端点
-                        api_endpoints = [
-                            # 可能的数据 API
-                            f"https://ecbi.ptengine.com/api/question/{question_uuid}",
-                            f"https://ecbi.ptengine.com/api/v1/question/{question_uuid}",
-                            f"https://ecbi.ptengine.com/api/public/question/{question_uuid}",
-                            f"https://ecbi.ptengine.com/api/report/{question_uuid}",
-                            f"https://ecbi.ptengine.com/question/{question_uuid}/data",
-                            f"https://ecbi.ptengine.com/public/question/{question_uuid}/export",
-                            # GraphQL 可能
-                            f"https://ecbi.ptengine.com/graphql",
-                        ]
+                        # 解析为 DataFrame
+                        from io import StringIO
+                        df = pd.read_csv(StringIO(pasted_data), sep=sep)
                         
-                        headers = {
-                            'Accept': 'application/json, text/plain, */*',
-                            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-                            'Referer': report_url,
-                        }
-                        
-                        for api_url in api_endpoints:
-                            try:
-                                if 'graphql' in api_url:
-                                    # 尝试 GraphQL 查询
-                                    response = requests.post(
-                                        api_url,
-                                        json={"query": f"{{ question(id: \"{question_uuid}\") {{ data }} }}"},
-                                        headers=headers,
-                                        timeout=5
-                                    )
-                                else:
-                                    response = requests.get(api_url, headers=headers, timeout=5)
-                                
-                                if response.status_code == 200:
-                                    content_type = response.headers.get('content-type', '')
-                                    if 'json' in content_type:
-                                        try:
-                                            json_data = response.json()
-                                            if json_data and not json_data.get('error'):
-                                                st.session_state['ptengine_report_data'] = json_data
-                                                st.success("✅ 成功获取数据！")
-                                                data_fetched = True
-                                                break
-                                        except:
-                                            pass
-                            except Exception:
-                                continue
-                        
-                        if not data_fetched:
-                            # 尝试直接获取页面 HTML
-                            try:
-                                page_response = requests.get(report_url, headers=headers, timeout=10)
-                                if page_response.status_code == 200:
-                                    html_content = page_response.text
-                                    
-                                    # 尝试从 HTML 中提取数据
-                                    # 查找 JSON 数据（通常在 script 标签或 data 属性中）
-                                    json_patterns = [
-                                        r'window\.__INITIAL_STATE__\s*=\s*({.*?});',
-                                        r'window\.__DATA__\s*=\s*({.*?});',
-                                        r'data-props=["\']({.*?})["\']',
-                                        r'"questionData"\s*:\s*(\[.*?\])',
-                                        r'"answers"\s*:\s*(\[.*?\])',
-                                    ]
-                                    
-                                    for pattern in json_patterns:
-                                        match = re_module.search(pattern, html_content, re_module.DOTALL)
-                                        if match:
-                                            try:
-                                                extracted_data = json.loads(match.group(1))
-                                                st.session_state['ptengine_report_data'] = extracted_data
-                                                st.success("✅ 从页面提取数据成功！")
-                                                data_fetched = True
-                                                break
-                                            except:
-                                                continue
-                            except Exception:
-                                pass
-                        
-                        if not data_fetched:
-                            st.warning("⚠️ 无法自动获取数据")
-                            st.markdown("""
-                            <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 0.5rem; padding: 0.75rem; font-size: 0.75rem; margin-top: 0.5rem;">
-                                <strong>📋 请手动导出：</strong><br>
-                                1. 点击下方按钮打开报告页面<br>
-                                2. 在页面中找到 <strong>导出/下载</strong> 按钮<br>
-                                3. 下载 CSV 或 Excel 文件<br>
-                                4. 切换到「上传文件」导入
-                            </div>
-                            """, unsafe_allow_html=True)
-                
-                st.link_button("🔗 打开报告页面", report_url, use_container_width=True)
-            else:
-                st.caption("⚠️ 请输入有效的报告链接")
-        else:
-            st.caption("请输入 Ptengine BI 报告链接")
+                        if len(df) > 0:
+                            st.session_state['pasted_df'] = df
+                            st.success(f"✅ 成功解析 {len(df)} 行数据！")
+                            st.dataframe(df.head(), use_container_width=True)
+                        else:
+                            st.error("未能解析出有效数据")
+                    else:
+                        st.warning("数据行数不足，请确保包含表头和数据行")
+                except Exception as e:
+                    st.error(f"解析失败: {str(e)}")
     else:
         uploaded_file = st.file_uploader(
             "上传调研数据 (Excel/CSV)", 
