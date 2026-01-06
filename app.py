@@ -1672,15 +1672,43 @@ with st.sidebar:
         if st.button("🔍 解析配置", key="parse_config_btn", use_container_width=True):
             if config_text and len(config_text) > 100:
                 question_map = {}
-                matches = re_module.findall(r'"name"\s*:\s*"([^"]+)"[^}]*?"question"\s*:\s*"([^"]+)"', config_text, re_module.DOTALL)
-                for name, question in matches:
-                    if not name.startswith('$') and not name.startswith('表单页'):
-                        question_map[name] = question
+                
+                try:
+                    # 方法1：尝试解析 JSON
+                    import json
+                    data = json.loads(config_text)
+                    
+                    # 递归提取
+                    def extract(obj):
+                        if isinstance(obj, dict):
+                            name = obj.get('name', '')
+                            question = obj.get('question', '')
+                            if name and question and not name.startswith('$') and not name.startswith('表单页'):
+                                question_map[name] = question
+                            for v in obj.values():
+                                extract(v)
+                        elif isinstance(obj, list):
+                            for item in obj:
+                                extract(item)
+                    
+                    extract(data)
+                except:
+                    # 方法2：正则提取（支持格式化JSON）
+                    names = re_module.findall(r'"name"\s*:\s*"([^"]+)"', config_text)
+                    questions = re_module.findall(r'"question"\s*:\s*"([^"]+)"', config_text)
+                    
+                    # 按顺序配对（假设 name 和 question 是成对出现的）
+                    valid_names = [n for n in names if not n.startswith('$') and not n.startswith('表单页') and not n.startswith('结束页')]
+                    
+                    for i, name in enumerate(valid_names):
+                        if i < len(questions):
+                            question_map[name] = questions[i]
+                
                 if question_map:
                     st.session_state['question_map'] = question_map
                     st.success(f"✅ 成功加载 {len(question_map)} 个问题映射！")
                 else:
-                    st.error("❌ 未找到问题。请确保：\n1. 打开了正确的 config.json 链接\n2. 使用 Ctrl+A 全选了整个页面\n3. 复制的是完整内容（应该很长）")
+                    st.error("❌ 未找到问题。请检查内容是否完整。")
             else:
                 st.warning("⚠️ 内容太短，请确保完整复制")
         
