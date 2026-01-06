@@ -1588,91 +1588,13 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    # 数据来源选择
-    st.caption("📁 数据来源")
-    data_source = st.radio(
-        "选择数据来源",
-        ["📤 上传文件", "🔗 报告链接"],
-        key="data_source_radio",
-        horizontal=True,
-        label_visibility="collapsed"
+    # 数据上传区
+    st.caption("📁 数据上传")
+    uploaded_file = st.file_uploader(
+        "上传调研数据 (Excel/CSV)", 
+        type=["csv", "xlsx", "pdf", "docx"],
+        help="支持格式: CSV, Excel, PDF, Word | 最大 200MB"
     )
-    
-    uploaded_file = None
-    
-    if data_source == "🔗 报告链接":
-        # 简化为直接提供导出指引
-        st.markdown("""
-        <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 0.5rem; font-size: 0.72rem;">
-            <strong>⚠️ 由于跨域限制，暂不支持直接获取</strong><br>
-            请按以下步骤手动导出数据：
-        </div>
-        """, unsafe_allow_html=True)
-        
-        report_url = st.text_input(
-            "报告链接",
-            placeholder="https://ecbi.ptengine.com/public/question/xxx",
-            key="ptengine_report_url",
-            label_visibility="collapsed"
-        )
-        
-        if report_url:
-            st.markdown("""
-            <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 0.5rem; padding: 0.75rem; font-size: 0.72rem;">
-                <strong>📋 导出步骤：</strong><br>
-                <span style="color: #059669;">①</span> 点击下方按钮打开报告<br>
-                <span style="color: #059669;">②</span> 点击页面 <strong>导出</strong> 按钮<br>
-                <span style="color: #059669;">③</span> 下载 CSV/Excel 文件<br>
-                <span style="color: #059669;">④</span> 切换「上传文件」导入
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.link_button("🔗 打开报告页面", report_url, use_container_width=True)
-        
-        st.markdown("---")
-        
-        # 提供粘贴表格数据的选项
-        with st.expander("📋 或：粘贴表格数据", expanded=False):
-            st.caption("从报告页面复制表格数据，粘贴到下方")
-            pasted_data = st.text_area(
-                "粘贴数据",
-                height=100,
-                placeholder="从网页复制表格后粘贴到这里...\n支持 Tab 分隔或逗号分隔的数据",
-                key="pasted_table_data",
-                label_visibility="collapsed"
-            )
-            
-            if pasted_data and st.button("📊 解析数据", key="parse_pasted_data", use_container_width=True):
-                try:
-                    # 尝试解析粘贴的数据
-                    lines = pasted_data.strip().split('\n')
-                    if len(lines) > 1:
-                        # 检测分隔符（Tab 或逗号）
-                        if '\t' in lines[0]:
-                            sep = '\t'
-                        else:
-                            sep = ','
-                        
-                        # 解析为 DataFrame
-                        from io import StringIO
-                        df = pd.read_csv(StringIO(pasted_data), sep=sep)
-                        
-                        if len(df) > 0:
-                            st.session_state['pasted_df'] = df
-                            st.success(f"✅ 成功解析 {len(df)} 行数据！")
-                            st.dataframe(df.head(), use_container_width=True)
-                        else:
-                            st.error("未能解析出有效数据")
-                    else:
-                        st.warning("数据行数不足，请确保包含表头和数据行")
-                except Exception as e:
-                    st.error(f"解析失败: {str(e)}")
-    else:
-        uploaded_file = st.file_uploader(
-            "上传调研数据 (Excel/CSV)", 
-            type=["csv", "xlsx", "pdf", "docx"],
-            help="支持格式: CSV, Excel, PDF, Word | 最大 200MB"
-        )
     
     if uploaded_file:
         st.markdown(f"""
