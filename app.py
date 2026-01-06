@@ -1624,19 +1624,57 @@ with st.sidebar:
         </div>
         """, unsafe_allow_html=True)
     
-    # 问题映射配置 - 粘贴 config.json 内容
+    # 问题映射配置 - 从链接或文件获取
     with st.expander("🔗 问题映射配置", expanded=False):
-        st.caption("粘贴 Ptengine 表单的 config.json 内容，自动解析问题")
-        st.markdown("""
-        <small style="color:#666;">
-        获取方式：访问 <code>https://comp.ptengine.com/assets/{Asset ID}/latest/config.json</code>
-        </small>
-        """, unsafe_allow_html=True)
         
+        # 解析配置的函数
+        def parse_config(config_content):
+            question_map = {}
+            def extract_questions(obj):
+                if isinstance(obj, dict):
+                    if 'name' in obj and ('title' in obj or 'label' in obj or 'question' in obj):
+                        name = obj.get('name', '')
+                        title = obj.get('title') or obj.get('label') or obj.get('question') or name
+                        if name and title:
+                            question_map[name] = title
+                    for v in obj.values():
+                        extract_questions(v)
+                elif isinstance(obj, list):
+                    for item in obj:
+                        extract_questions(item)
+            extract_questions(config_content)
+            return question_map
+        
+        # 方式1：粘贴链接，自动生成下载链接
+        st.markdown("**方式1：粘贴表单链接**")
+        form_url = st.text_input(
+            "表单链接",
+            placeholder="https://comp.ptengine.com/assets/xxx/latest/index.html",
+            key="form_url_input",
+            label_visibility="collapsed"
+        )
+        
+        if form_url:
+            import re
+            # 从链接提取 Asset ID
+            match = re.search(r'/assets/([^/]+)/', form_url)
+            if match:
+                asset_id = match.group(1)
+                config_url = f"https://comp.ptengine.com/assets/{asset_id}/latest/config.json"
+                st.info(f"📋 请在浏览器打开以下链接，然后 **Ctrl+A 全选** → **Ctrl+C 复制** 内容：")
+                st.code(config_url, language=None)
+                st.caption("复制后粘贴到下方文本框")
+            else:
+                st.warning("⚠️ 无法从链接中提取 Asset ID")
+        
+        st.markdown("---")
+        
+        # 方式2：粘贴 JSON 内容
+        st.markdown("**方式2：粘贴 config.json 内容**")
         config_json = st.text_area(
-            "config.json 内容",
-            placeholder='{"pages":[{"elements":[{"name":"Age","title":"What is your age?"}]}]}',
-            height=150,
+            "JSON内容",
+            placeholder="从浏览器复制的 JSON 内容粘贴到这里...",
+            height=120,
             key="config_json_input",
             label_visibility="collapsed"
         )
@@ -1644,38 +1682,46 @@ with st.sidebar:
         if config_json:
             try:
                 config_content = json.loads(config_json)
-                question_map = {}
-                
-                # 递归查找所有 name/title 对
-                def extract_questions(obj):
-                    if isinstance(obj, dict):
-                        if 'name' in obj and ('title' in obj or 'label' in obj or 'question' in obj):
-                            name = obj.get('name', '')
-                            title = obj.get('title') or obj.get('label') or obj.get('question') or name
-                            if name and title:
-                                question_map[name] = title
-                        for v in obj.values():
-                            extract_questions(v)
-                    elif isinstance(obj, list):
-                        for item in obj:
-                            extract_questions(item)
-                
-                extract_questions(config_content)
+                question_map = parse_config(config_content)
                 
                 if question_map:
                     st.session_state['question_map'] = question_map
-                    st.success(f"✅ 已解析 {len(question_map)} 个问题")
-                    with st.expander("查看映射", expanded=False):
-                        for k, v in list(question_map.items())[:10]:
-                            display_v = v[:50] + "..." if len(str(v)) > 50 else v
-                            st.caption(f"• {k} → {display_v}")
+                    st.success(f"✅ 已解析 {len(question_map)} 个问题映射")
+                    for k, v in list(question_map.items())[:5]:
+                        display_v = v[:40] + "..." if len(str(v)) > 40 else v
+                        st.caption(f"• {k} → {display_v}")
                 else:
                     st.warning("⚠️ 未找到问题映射")
             except json.JSONDecodeError:
-                st.error("❌ JSON 格式错误，请检查")
+                st.error("❌ JSON 格式错误")
             except Exception as e:
                 st.error(f"❌ 解析失败: {e}")
         
+        st.markdown("---")
+        
+        # 方式3：上传文件
+        st.markdown("**方式3：上传 config.json 文件**")
+        config_file = st.file_uploader(
+            "上传配置文件",
+            type=["json"],
+            key="config_file_upload",
+            label_visibility="collapsed"
+        )
+        
+        if config_file:
+            try:
+                config_content = json.loads(config_file.read().decode('utf-8'))
+                question_map = parse_config(config_content)
+                
+                if question_map:
+                    st.session_state['question_map'] = question_map
+                    st.success(f"✅ 已解析 {len(question_map)} 个问题映射")
+                else:
+                    st.warning("⚠️ 未找到问题映射")
+            except Exception as e:
+                st.error(f"❌ 解析失败: {e}")
+        
+        # 显示当前状态
         if 'question_map' in st.session_state and st.session_state['question_map']:
             st.markdown("---")
             st.caption(f"📋 当前已有 {len(st.session_state['question_map'])} 个映射")
