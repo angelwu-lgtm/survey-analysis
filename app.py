@@ -3020,25 +3020,56 @@ if uploaded_file:
                                         if len(choice_df) > 0:
                                             choice_df['选择率数值'] = choice_df['选择人数'] / total_respondents * 100
                                             
+                                            # 处理长标签：截断并添加换行
+                                            def wrap_label(text, max_len=25):
+                                                """将长标签截断或换行"""
+                                                if len(str(text)) <= max_len:
+                                                    return str(text)
+                                                # 在合适位置换行
+                                                words = str(text)
+                                                lines = []
+                                                current_line = ""
+                                                for char in words:
+                                                    current_line += char
+                                                    if len(current_line) >= max_len:
+                                                        lines.append(current_line)
+                                                        current_line = ""
+                                                if current_line:
+                                                    lines.append(current_line)
+                                                return "<br>".join(lines[:2]) + ("..." if len(lines) > 2 else "")
+                                            
+                                            choice_df['选项显示'] = choice_df['选项'].apply(wrap_label)
+                                            
                                             fig_choice = go.Figure()
                                             fig_choice.add_trace(go.Bar(
-                                                x=choice_df['选项'],
+                                                x=choice_df['选项显示'],
                                                 y=choice_df['选择人数'],
                                                 text=choice_df.apply(lambda r: f"{r['选择人数']}<br>({r['选择率数值']:.1f}%)", axis=1),
                                                 textposition='outside',
                                                 marker_color=px.colors.qualitative.Set2[:len(choice_df)],
-                                                hovertemplate='<b>%{x}</b><br>选择人数: %{y}<br>选择率: %{text}<extra></extra>'
+                                                hovertemplate='<b>%{customdata}</b><br>选择人数: %{y}<extra></extra>',
+                                                customdata=choice_df['选项']  # 完整选项显示在 hover
                                             ))
+                                            
+                                            # 根据选项数量和长度动态调整图表
+                                            max_label_len = choice_df['选项'].str.len().max()
+                                            chart_height = 450 if max_label_len > 50 else 400
+                                            bottom_margin = 150 if max_label_len > 30 else 100
                                             
                                             fig_choice.update_layout(
                                                 title="各选项被选择次数（可多选）",
                                                 xaxis_title="选项",
                                                 yaxis_title="选择人数",
-                                                height=400,
+                                                height=chart_height,
                                                 plot_bgcolor='rgba(0,0,0,0)',
                                                 paper_bgcolor='rgba(0,0,0,0)',
-                                                xaxis_tickangle=-45 if len(choice_df) > 5 else 0,
-                                                margin=dict(b=100)
+                                                xaxis_tickangle=0,  # 保持水平，因为已经换行
+                                                margin=dict(b=bottom_margin, l=50, r=50, t=50),
+                                                xaxis=dict(
+                                                    tickfont=dict(size=10),
+                                                    automargin=True
+                                                ),
+                                                bargap=0.3  # 增加柱子间距
                                             )
                                             st.plotly_chart(fig_choice, use_container_width=True)
                                             
