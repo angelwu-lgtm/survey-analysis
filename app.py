@@ -1624,30 +1624,62 @@ with st.sidebar:
         </div>
         """, unsafe_allow_html=True)
     
-    # 问题映射配置 - 简化版手动输入
+    # 问题映射配置 - 粘贴 config.json 内容
     with st.expander("🔗 问题映射配置", expanded=False):
-        st.caption("将字段名映射到完整问题（每行: 字段名=完整问题）")
+        st.caption("粘贴 Ptengine 表单的 config.json 内容，自动解析问题")
+        st.markdown("""
+        <small style="color:#666;">
+        获取方式：访问 <code>https://comp.ptengine.com/assets/{Asset ID}/latest/config.json</code>
+        </small>
+        """, unsafe_allow_html=True)
         
-        manual_map = st.text_area(
-            "字段映射",
-            placeholder="Age=What is your age?\nWorkRole=What is your work role?",
-            height=100,
-            key="manual_question_map",
+        config_json = st.text_area(
+            "config.json 内容",
+            placeholder='{"pages":[{"elements":[{"name":"Age","title":"What is your age?"}]}]}',
+            height=150,
+            key="config_json_input",
             label_visibility="collapsed"
         )
         
-        if manual_map:
-            question_map = {}
-            for line in manual_map.strip().split('\n'):
-                if '=' in line:
-                    key, value = line.split('=', 1)
-                    question_map[key.strip()] = value.strip()
-            if question_map:
-                st.session_state['question_map'] = question_map
-                st.success(f"✅ 已保存 {len(question_map)} 个映射")
+        if config_json:
+            try:
+                config_content = json.loads(config_json)
+                question_map = {}
+                
+                # 递归查找所有 name/title 对
+                def extract_questions(obj):
+                    if isinstance(obj, dict):
+                        if 'name' in obj and ('title' in obj or 'label' in obj or 'question' in obj):
+                            name = obj.get('name', '')
+                            title = obj.get('title') or obj.get('label') or obj.get('question') or name
+                            if name and title:
+                                question_map[name] = title
+                        for v in obj.values():
+                            extract_questions(v)
+                    elif isinstance(obj, list):
+                        for item in obj:
+                            extract_questions(item)
+                
+                extract_questions(config_content)
+                
+                if question_map:
+                    st.session_state['question_map'] = question_map
+                    st.success(f"✅ 已解析 {len(question_map)} 个问题")
+                    with st.expander("查看映射", expanded=False):
+                        for k, v in list(question_map.items())[:10]:
+                            display_v = v[:50] + "..." if len(str(v)) > 50 else v
+                            st.caption(f"• {k} → {display_v}")
+                else:
+                    st.warning("⚠️ 未找到问题映射")
+            except json.JSONDecodeError:
+                st.error("❌ JSON 格式错误，请检查")
+            except Exception as e:
+                st.error(f"❌ 解析失败: {e}")
         
         if 'question_map' in st.session_state and st.session_state['question_map']:
-            if st.button("🗑️ 清除", key="clear_map_btn"):
+            st.markdown("---")
+            st.caption(f"📋 当前已有 {len(st.session_state['question_map'])} 个映射")
+            if st.button("🗑️ 清除映射", key="clear_map_btn"):
                 st.session_state['question_map'] = {}
     
     # 全局筛选器
