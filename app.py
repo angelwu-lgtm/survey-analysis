@@ -197,43 +197,43 @@ st.markdown("""
     }
     
     [data-testid="stSidebar"] > div:first-child {
-        padding: 1rem 0.75rem !important;
+        padding: 1.25rem 1rem !important;
     }
     
     [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-        gap: 0.5rem !important;
+        gap: 0.75rem !important;
     }
     
     /* 侧边栏内组件间距 */
     [data-testid="stSidebar"] [data-testid="stExpander"] {
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.75rem;
     }
     
     [data-testid="stSidebar"] .stSelectbox,
     [data-testid="stSidebar"] .stTextInput {
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.5rem;
     }
     
     /* 侧边栏标签文字 */
     [data-testid="stSidebar"] label {
-        font-size: 0.75rem !important;
+        font-size: 0.8rem !important;
         font-weight: 500 !important;
-        color: var(--muted-foreground) !important;
-        margin-bottom: 0.25rem !important;
+        color: #71717a !important;
+        margin-bottom: 0.375rem !important;
     }
     
     /* 侧边栏头部 */
     .sidebar-header {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.25rem 0 0.75rem;
-        margin-bottom: 0.75rem;
+        gap: 0.625rem;
+        padding: 0.375rem 0 1rem;
+        margin-bottom: 1rem;
         border-bottom: 1px solid var(--border);
     }
     
     .sidebar-logo {
-        width: 28px;
+        width: 32px;
         height: 36px;
         background: var(--brand);
         border-radius: var(--radius);
@@ -338,31 +338,31 @@ st.markdown("""
         border-radius: var(--radius);
         font-weight: 500;
         font-family: 'Inter', 'Noto Sans SC', sans-serif;
-        transition: all 0.15s ease;
-        border: 1px solid var(--gray-300);
-        background: var(--white);
-        color: var(--gray-800);
+        border: 1px solid #e4e4e7;
+        background: #ffffff;
+        color: #18181b;
         padding: 0.5rem 1.25rem;
         font-size: 0.875rem;
         height: auto;
-        box-shadow: var(--shadow-sm);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
     
     .stButton>button:hover {
-        background: var(--gray-50);
-        border-color: var(--primary);
-        color: var(--primary);
+        background: #f4f4f5 !important;
+        border-color: #18181b !important;
+        color: #18181b !important;
     }
     
     .stDownloadButton>button {
-        background: var(--primary);
-        color: white;
-        border-color: var(--primary);
+        background: #2563eb !important;
+        color: #ffffff !important;
+        border-color: #2563eb !important;
     }
     
     .stDownloadButton>button:hover {
-        background: var(--primary-dark);
-        border-color: var(--primary-dark);
+        background: #1d4ed8 !important;
+        border-color: #1d4ed8 !important;
+        color: #ffffff !important;
     }
     
     /* Action 按钮 */
@@ -385,19 +385,26 @@ st.markdown("""
         justify-content: center;
     }
     
-    .stButton>button:hover {
-        opacity: 0.9;
+    /* 所有按钮 hover 统一样式 */
+    .stButton>button:hover,
+    .stButton>button:focus,
+    .stButton>button:active {
+        background: #f4f4f5 !important;
+        border-color: #18181b !important;
+        color: #18181b !important;
     }
     
-    /* 次要按钮 */
-    .stButton>button[kind="secondary"] {
-        background: var(--background);
-        color: var(--foreground);
-        border: 1px solid var(--input);
+    /* 主要按钮（蓝色） */
+    .stButton>button[kind="primary"] {
+        background: #2563eb !important;
+        color: #ffffff !important;
+        border: 1px solid #2563eb !important;
     }
     
-    .stButton>button[kind="secondary"]:hover {
-        background: var(--accent);
+    .stButton>button[kind="primary"]:hover {
+        background: #1d4ed8 !important;
+        border-color: #1d4ed8 !important;
+        color: #ffffff !important;
     }
     
     /* ========== 数据表格 - shadcn Table ========== */
