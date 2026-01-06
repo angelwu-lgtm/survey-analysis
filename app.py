@@ -60,306 +60,266 @@ try:
 except:
     pass
 
-# --- 专业 SaaS 风格 CSS 样式系统 ---
+# --- shadcn UI 风格设计系统 - Ptengine 调研分析工具 ---
 st.markdown("""
 <style>
-    /* ========== 紧急修复：禁用所有闪烁 ========== */
-    * {
-        -webkit-animation: none !important;
-        animation: none !important;
-        -webkit-transition: none !important;
-        transition: none !important;
-    }
+    /* ========== shadcn UI 设计系统 ========== */
     
-    /* Streamlit 特定元素稳定化 */
-    .stApp, .main, [data-testid="stAppViewContainer"] {
-        -webkit-animation: none !important;
-        animation: none !important;
-    }
+    /* 导入 Inter 字体 - shadcn 默认字体 */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
     
-    iframe {
-        display: block !important;
-    }
-    
-    /* ========== 专业 SaaS 设计系统 ========== */
-    
-    /* 导入指定字体 */
-    @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
-    
-    /* CSS 变量 - 专业色彩系统 */
+    /* CSS 变量 - shadcn 风格 */
     :root {
-        /* 主色调 - Ptengine 品牌蓝 */
-        --primary: #2E86C1;
-        --primary-dark: #1A5276;
-        --primary-light: #EBF5FB;
-        --primary-hover: #2471A3;
+        /* 背景色 */
+        --background: #ffffff;
+        --foreground: #0a0a0a;
+        --card: #ffffff;
+        --card-foreground: #0a0a0a;
+        --popover: #ffffff;
+        --popover-foreground: #0a0a0a;
         
-        /* 中性色 */
-        --black: #1C2833;
-        --gray-900: #2C3E50;
-        --gray-800: #34495E;
-        --gray-700: #5D6D7E;
-        --gray-600: #7F8C8D;
-        --gray-500: #95A5A6;
-        --gray-400: #BDC3C7;
-        --gray-300: #D5D8DC;
-        --gray-200: #E5E8E8;
-        --gray-100: #F2F4F4;
-        --gray-50: #FAFAFA;
-        --white: #FFFFFF;
+        /* 主色调 - Ptengine 品牌色 */
+        --primary: #18181b;
+        --primary-foreground: #fafafa;
         
-        /* 语义色 - NPS 红绿灯 */
-        --success: #27AE60;
-        --success-light: #D4EFDF;
-        --warning: #F39C12;
-        --warning-light: #FCF3CF;
-        --danger: #E74C3C;
-        --danger-light: #FADBD8;
-        --info: #3498DB;
-        --info-light: #D6EAF8;
+        /* 辅助色 */
+        --secondary: #f4f4f5;
+        --secondary-foreground: #18181b;
+        --muted: #f4f4f5;
+        --muted-foreground: #71717a;
+        --accent: #f4f4f5;
+        --accent-foreground: #18181b;
         
-        /* 圆角 */
-        --radius-sm: 4px;
-        --radius: 8px;
-        --radius-lg: 12px;
-        --radius-xl: 16px;
+        /* 边框和输入框 */
+        --border: #e4e4e7;
+        --input: #e4e4e7;
+        --ring: #18181b;
         
-        /* 阴影 */
-        --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-        --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
-        --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-        --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+        /* 语义色 */
+        --destructive: #ef4444;
+        --destructive-foreground: #fafafa;
+        --success: #22c55e;
+        --success-foreground: #fafafa;
+        --warning: #f59e0b;
+        --warning-foreground: #fafafa;
+        
+        /* 品牌色 - Ptengine 蓝 */
+        --brand: #2563eb;
+        --brand-foreground: #ffffff;
+        --brand-muted: #dbeafe;
+        
+        /* 圆角 - shadcn 风格 */
+        --radius: 0.5rem;
+        --radius-sm: 0.375rem;
+        --radius-lg: 0.75rem;
+        --radius-xl: 1rem;
     }
     
     /* 隐藏 Streamlit 默认元素 */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
+    #MainMenu, footer, header {visibility: hidden;}
     
-    /* 全局字体 */
+    /* 全局字体 - Inter */
     html, body, [class*="css"] {
-        font-family: 'Open Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', -apple-system, sans-serif;
+        font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
         -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        color: var(--gray-800);
+        font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+        color: var(--foreground);
     }
     
     /* 主容器 */
     .main {
-        background: var(--gray-50);
-        padding: 0;
+        background: #fafafa;
     }
     
     .block-container {
-        padding: 1rem 2rem 2rem;
+        padding: 1.5rem 2rem 2rem;
         max-width: 100%;
     }
     
-    /* ========== KPI 指标卡片 ========== */
+    /* ========== 卡片组件 - shadcn Card ========== */
     .kpi-card {
-        background: var(--white);
+        background: var(--card);
         border-radius: var(--radius-lg);
-        padding: 1.25rem 1.5rem;
-        border: 1px solid var(--gray-200);
-        box-shadow: var(--shadow-sm);
-        transition: all 0.2s ease;
-        height: 100%;
+        padding: 1.5rem;
+        border: 1px solid var(--border);
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     }
     
     .kpi-card:hover {
-        box-shadow: var(--shadow-md);
-        border-color: var(--primary);
-        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
     }
     
     .kpi-label {
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: var(--gray-600);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--muted-foreground);
         margin-bottom: 0.5rem;
     }
     
     .kpi-value {
-        font-size: 1.875rem;
+        font-size: 2rem;
         font-weight: 700;
-        color: var(--primary);
-        line-height: 1.2;
-        margin-bottom: 0.25rem;
+        color: var(--foreground);
+        line-height: 1;
+        letter-spacing: -0.025em;
     }
     
     .kpi-delta {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         font-weight: 500;
         display: inline-flex;
         align-items: center;
         gap: 0.25rem;
-        padding: 0.125rem 0.5rem;
+        padding: 0.25rem 0.625rem;
         border-radius: 9999px;
+        margin-top: 0.5rem;
     }
     
     .kpi-delta.positive {
-        background: var(--success-light);
-        color: var(--success);
+        background: #dcfce7;
+        color: #166534;
     }
     
     .kpi-delta.negative {
-        background: var(--danger-light);
-        color: var(--danger);
+        background: #fee2e2;
+        color: #991b1b;
     }
     
     .kpi-delta.neutral {
-        background: var(--gray-100);
-        color: var(--gray-600);
+        background: var(--secondary);
+        color: var(--muted-foreground);
     }
     
-    /* ========== 侧边栏 ========== */
+    /* ========== 侧边栏 - shadcn Sidebar ========== */
     [data-testid="stSidebar"] {
-        background: var(--white);
-        border-right: 1px solid var(--gray-200);
+        background: var(--card);
+        border-right: 1px solid var(--border);
     }
     
     [data-testid="stSidebar"] > div:first-child {
-        padding: 1.5rem 1rem 1rem !important;
+        padding: 1rem !important;
     }
     
-    /* 侧边栏顶部对齐主内容区 */
     [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-        gap: 0.5rem !important;
+        gap: 0.25rem !important;
     }
     
-    /* 减少侧边栏底部留白 */
-    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div {
-        margin-bottom: 0 !important;
-    }
-    
-    /* 侧边栏标题 - 与右侧页面标题对齐 */
+    /* 侧边栏头部 */
     .sidebar-header {
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        padding-bottom: 1rem;
+        padding: 0.5rem 0 1rem;
         margin-bottom: 1rem;
-        margin-top: 0;
-        border-bottom: 1px solid var(--gray-200);
+        border-bottom: 1px solid var(--border);
     }
     
     .sidebar-logo {
-        width: 40px;
-        height: 40px;
-        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        width: 36px;
+        height: 36px;
+        background: var(--brand);
         border-radius: var(--radius);
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
-        font-size: 1.25rem;
+        font-size: 1rem;
         font-weight: 700;
     }
     
     .sidebar-title {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: var(--gray-900);
-        line-height: 1.2;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--foreground);
+        letter-spacing: -0.025em;
     }
     
     .sidebar-subtitle {
-        font-size: 0.7rem;
-        color: var(--gray-500);
-        margin-top: 2px;
+        font-size: 0.75rem;
+        color: var(--muted-foreground);
     }
     
-    /* 侧边栏分组 */
-    .sidebar-section {
-        margin-top: 1.5rem;
-    }
-    
+    /* 侧边栏分组标题 */
     .sidebar-section-title {
-        font-size: 0.7rem;
-        font-weight: 700;
-        color: var(--gray-500);
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--muted-foreground);
         text-transform: uppercase;
-        letter-spacing: 0.08em;
-        margin-bottom: 0.75rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 1px solid var(--gray-100);
+        letter-spacing: 0.05em;
+        margin: 1rem 0 0.5rem;
+        padding-left: 0.5rem;
     }
     
-    /* 文件上传成功提示 */
+    /* 文件上传成功 */
     .upload-success {
-        background: var(--success-light);
-        border: 1px solid var(--success);
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
         border-radius: var(--radius);
-        padding: 0.875rem 1rem;
-        margin: 0.75rem 0;
+        padding: 0.75rem 1rem;
+        margin: 0.5rem 0;
     }
     
     .upload-success-icon {
         display: inline-flex;
         width: 1.25rem;
         height: 1.25rem;
-        background: var(--success);
+        background: #22c55e;
         border-radius: 50%;
         align-items: center;
         justify-content: center;
         color: white;
-        font-size: 0.7rem;
+        font-size: 0.625rem;
         margin-right: 0.5rem;
     }
     
     .upload-success-text {
         font-weight: 600;
-        color: var(--success);
-        font-size: 0.85rem;
+        color: #166534;
+        font-size: 0.875rem;
     }
     
     .upload-file-info {
-        color: #1E8449;
+        color: #15803d;
         font-size: 0.75rem;
-        margin-top: 0.375rem;
+        margin-top: 0.25rem;
         padding-left: 1.75rem;
     }
     
-    /* ========== 标签页 ========== */
+    /* ========== 标签页 - shadcn Tabs ========== */
     .stTabs [data-baseweb="tab-list"] {
         gap: 0;
-        background: var(--white);
-        padding: 0.375rem;
+        background: var(--muted);
+        padding: 0.25rem;
         border-radius: var(--radius-lg);
-        border: 1px solid var(--gray-200);
-        box-shadow: var(--shadow-sm);
+        border: none;
     }
     
     .stTabs [data-baseweb="tab"] {
-        height: 2.75rem;
+        height: 2.25rem;
         background: transparent;
         border-radius: var(--radius);
-        padding: 0 1.5rem;
+        padding: 0 1rem;
         font-weight: 500;
         font-size: 0.875rem;
-        color: var(--gray-600);
+        color: var(--muted-foreground);
         border: none;
-        transition: all 0.15s ease;
     }
     
     .stTabs [data-baseweb="tab"]:hover {
-        color: var(--primary);
-        background: var(--primary-light);
+        color: var(--foreground);
     }
     
     .stTabs [aria-selected="true"] {
-        background: var(--primary) !important;
-        color: white !important;
-        box-shadow: var(--shadow);
+        background: var(--background) !important;
+        color: var(--foreground) !important;
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     }
     
-    /* ========== 按钮 ========== */
+    /* ========== 按钮 - shadcn Button ========== */
     .stButton>button {
         border-radius: var(--radius);
-        font-weight: 600;
-        font-family: 'Open Sans', 'Noto Sans SC', sans-serif;
+        font-weight: 500;
+        font-family: 'Inter', 'Noto Sans SC', sans-serif;
         transition: all 0.15s ease;
         border: 1px solid var(--gray-300);
         background: var(--white);
@@ -393,177 +353,156 @@ st.markdown("""
         align-items: center;
         gap: 0.5rem;
         padding: 0.5rem 1rem;
+        height: 2.25rem;
         background: var(--primary);
-        color: white;
+        color: var(--primary-foreground);
         border-radius: var(--radius);
-        font-size: 0.8rem;
-        font-weight: 600;
+        font-size: 0.875rem;
+        font-weight: 500;
         text-decoration: none;
-        transition: all 0.15s ease;
         border: none;
         cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
     
-    .action-btn:hover {
-        background: var(--primary-dark);
-        transform: translateY(-1px);
-        box-shadow: var(--shadow-md);
+    .stButton>button:hover {
+        opacity: 0.9;
     }
     
-    .action-btn.secondary {
-        background: var(--white);
-        color: var(--primary);
-        border: 1px solid var(--primary);
+    /* 次要按钮 */
+    .stButton>button[kind="secondary"] {
+        background: var(--background);
+        color: var(--foreground);
+        border: 1px solid var(--input);
     }
     
-    .action-btn.secondary:hover {
-        background: var(--primary-light);
+    .stButton>button[kind="secondary"]:hover {
+        background: var(--accent);
     }
     
-    /* ========== 数据表格 ========== */
+    /* ========== 数据表格 - shadcn Table ========== */
     [data-testid="stDataFrame"] {
-        border-radius: var(--radius-lg);
+        border-radius: var(--radius);
         overflow: hidden;
-        border: 1px solid var(--gray-200);
-        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
     }
     
     [data-testid="stDataFrame"] table {
-        font-family: 'Open Sans', 'Noto Sans SC', sans-serif;
+        font-family: 'Inter', 'Noto Sans SC', sans-serif;
         font-size: 0.875rem;
     }
     
     [data-testid="stDataFrame"] thead tr th {
-        background: var(--gray-50);
-        color: var(--gray-700);
-        font-weight: 600;
-        padding: 0.875rem 1rem;
-        border-bottom: 2px solid var(--gray-200);
+        background: var(--muted);
+        color: var(--muted-foreground);
+        font-weight: 500;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border);
         text-align: left;
         font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
     }
     
     [data-testid="stDataFrame"] tbody tr td {
         padding: 0.75rem 1rem;
-        border-bottom: 1px solid var(--gray-100);
-        color: var(--gray-800);
+        border-bottom: 1px solid var(--border);
+        color: var(--foreground);
     }
     
     [data-testid="stDataFrame"] tbody tr:hover td {
-        background: var(--primary-light);
+        background: var(--muted);
     }
     
-    /* ========== 输入组件 ========== */
+    /* ========== 输入组件 - shadcn Input ========== */
     .stTextInput>div>div>input,
     .stTextArea>div>div>textarea,
     .stSelectbox>div>div,
     .stMultiSelect>div>div {
         border-radius: var(--radius);
-        border: 1px solid var(--gray-300);
-        font-family: 'Open Sans', 'Noto Sans SC', sans-serif;
+        border: 1px solid var(--input);
+        font-family: 'Inter', 'Noto Sans SC', sans-serif;
         font-size: 0.875rem;
-        transition: all 0.15s ease;
+        background: var(--background);
     }
     
     .stTextInput>div>div>input:focus,
     .stTextArea>div>div>textarea:focus {
-        border-color: var(--primary);
-        box-shadow: 0 0 0 3px var(--primary-light);
+        border-color: var(--ring);
+        box-shadow: 0 0 0 2px var(--ring);
         outline: none;
     }
     
-    /* ========== MultiSelect 标签样式修复 ========== */
-    /* 选中的标签 - 使用蓝色而非红色 */
+    /* ========== MultiSelect - shadcn Badge ========== */
     .stMultiSelect [data-baseweb="tag"] {
-        background-color: var(--primary) !important;
-        border-color: var(--primary) !important;
-        color: white !important;
-        border-radius: var(--radius) !important;
-        font-size: 0.8rem !important;
+        background-color: var(--secondary) !important;
+        border: 1px solid var(--border) !important;
+        color: var(--secondary-foreground) !important;
+        border-radius: var(--radius-sm) !important;
+        font-size: 0.75rem !important;
         font-weight: 500 !important;
-        padding: 0.25rem 0.5rem !important;
+        padding: 0.125rem 0.5rem !important;
         margin: 2px !important;
-        animation: none !important;
-        transition: none !important;
     }
     
     .stMultiSelect [data-baseweb="tag"]:hover {
-        background-color: var(--primary-dark) !important;
-        border-color: var(--primary-dark) !important;
+        background-color: var(--accent) !important;
     }
     
-    /* 标签内的文字 */
     .stMultiSelect [data-baseweb="tag"] span {
-        color: white !important;
+        color: var(--secondary-foreground) !important;
     }
     
-    /* 删除按钮 */
     .stMultiSelect [data-baseweb="tag"] [data-baseweb="icon"] {
-        color: rgba(255,255,255,0.8) !important;
+        color: var(--muted-foreground) !important;
     }
     
-    .stMultiSelect [data-baseweb="tag"] [data-baseweb="icon"]:hover {
-        color: white !important;
-    }
-    
-    /* 防止闪烁 - 移除所有动画 */
-    .stMultiSelect * {
-        animation: none !important;
-        transition: background-color 0.15s ease, border-color 0.15s ease !important;
-    }
-    
-    /* MultiSelect 容器聚焦样式 */
     .stMultiSelect>div>div:focus-within {
-        border-color: var(--primary) !important;
-        box-shadow: 0 0 0 3px var(--primary-light) !important;
+        border-color: var(--ring) !important;
+        box-shadow: 0 0 0 2px var(--ring) !important;
     }
     
-    /* ========== 展开器 ========== */
+    /* ========== 展开器 - shadcn Accordion ========== */
     [data-testid="stExpander"] {
-        border: 1px solid var(--gray-200);
-        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
         overflow: hidden;
-        background: var(--white);
-        box-shadow: var(--shadow-sm);
+        background: var(--card);
     }
     
     .streamlit-expanderHeader {
-        font-weight: 600;
-        font-size: 0.9rem;
-        color: var(--gray-800);
-        padding: 1rem 1.25rem;
-        background: var(--gray-50);
+        font-weight: 500;
+        font-size: 0.875rem;
+        color: var(--foreground);
+        padding: 1rem;
+        background: transparent;
     }
     
     .streamlit-expanderHeader:hover {
-        background: var(--primary-light);
-        color: var(--primary);
+        background: var(--muted);
     }
     
-    /* ========== 提示消息 ========== */
+    /* ========== 提示消息 - shadcn Alert ========== */
     .stAlert {
-        border-radius: var(--radius-lg);
-        border-left-width: 4px;
-        padding: 1rem 1.25rem;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        padding: 1rem;
         font-size: 0.875rem;
     }
     
     /* ========== 图表容器 ========== */
     .chart-container {
-        background: var(--white);
-        border-radius: var(--radius-lg);
+        background: var(--card);
+        border-radius: var(--radius);
         padding: 1.5rem;
-        border: 1px solid var(--gray-200);
-        box-shadow: var(--shadow-sm);
-        margin-bottom: 1.5rem;
+        border: 1px solid var(--border);
+        margin-bottom: 1rem;
     }
     
     .chart-title {
-        font-size: 1rem;
+        font-size: 0.875rem;
         font-weight: 600;
-        color: var(--gray-900);
+        color: var(--foreground);
         margin-bottom: 1rem;
         display: flex;
         align-items: center;
@@ -572,18 +511,15 @@ st.markdown("""
     
     /* ========== 问题卡片 ========== */
     .question-card {
-        background: var(--white);
-        border: 1px solid var(--gray-200);
-        border-radius: var(--radius-lg);
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
         padding: 1.5rem;
-        margin-bottom: 1.25rem;
-        box-shadow: var(--shadow-sm);
-        transition: all 0.2s ease;
+        margin-bottom: 1rem;
     }
     
     .question-card:hover {
-        border-color: var(--primary);
-        box-shadow: var(--shadow-md);
+        border-color: var(--ring);
     }
     
     .question-header {
@@ -851,25 +787,26 @@ st.markdown("""
         background: var(--gray-200);
     }
     
-    /* ========== 页面标题区 - 与侧边栏对齐 ========== */
+    /* ========== 页面标题区 - shadcn 风格 ========== */
     .page-header {
-        background: var(--white);
-        border-bottom: 1px solid var(--gray-200);
-        padding: 1.25rem 2rem;
-        margin: -1rem -2rem 1.5rem;
+        background: transparent;
+        padding: 0 0 1.5rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border);
     }
     
     .page-title {
-        font-size: 1.5rem;
+        font-size: 1.875rem;
         font-weight: 700;
-        color: var(--gray-900);
-        margin-bottom: 0.25rem;
-        line-height: 1.3;
+        color: var(--foreground);
+        letter-spacing: -0.025em;
+        line-height: 1.2;
     }
     
     .page-subtitle {
-        font-size: 0.8rem;
-        color: var(--gray-500);
+        font-size: 0.875rem;
+        color: var(--muted-foreground);
+        margin-top: 0.25rem;
     }
     
     /* ========== 统计网格 ========== */
@@ -881,8 +818,8 @@ st.markdown("""
     }
     
     .stat-item {
-        background: var(--white);
-        border: 1px solid var(--gray-200);
+        background: var(--card);
+        border: 1px solid var(--border);
         border-radius: var(--radius-lg);
         padding: 1.25rem;
         transition: all 0.2s ease;
@@ -2204,8 +2141,8 @@ def generate_ai_response(question, df):
 # --- 页面标题 ---
 st.markdown("""
 <div class="page-header">
-    <div class="page-title">📊 调研数据洞察看板</div>
-    <div class="page-subtitle">支持 Excel/CSV 交叉分析与 PDF/Word 文本挖掘，让数据洞察更简单</div>
+    <div class="page-title">Survey Insights</div>
+    <div class="page-subtitle">调研数据分析工具 · 支持 Excel/CSV 交叉分析与文本挖掘</div>
 </div>
 """, unsafe_allow_html=True)
 
