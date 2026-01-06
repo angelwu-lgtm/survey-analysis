@@ -933,25 +933,27 @@ st.markdown("""
         line-height: 1.2 !important;
     }
     
-    /* Browse files 按钮 - 保持合适大小 */
+    /* Browse files 按钮 - 深色样式 */
+    [data-testid="stFileUploader"] button,
     [data-testid="stFileUploader"] button[kind="secondary"] {
-        background: var(--primary) !important;
-        border: none !important;
-        border-radius: var(--radius) !important;
-        color: white !important;
-        font-size: 0.7rem !important;
-        font-weight: 600 !important;
+        background: #18181b !important;
+        border: 1px solid #18181b !important;
+        border-radius: 0.5rem !important;
+        color: #ffffff !important;
         font-size: 0.75rem !important;
+        font-weight: 500 !important;
         padding: 0.5rem 1rem !important;
         margin-top: 0.5rem !important;
         transition: all 0.15s ease !important;
-        box-shadow: 0 1px 2px rgba(46, 134, 193, 0.2) !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
     }
     
+    [data-testid="stFileUploader"] button:hover,
     [data-testid="stFileUploader"] button[kind="secondary"]:hover {
-        background: var(--primary-dark) !important;
-        transform: translateY(-1px) !important;
-        box-shadow: 0 2px 4px rgba(46, 134, 193, 0.3) !important;
+        background: #3f3f46 !important;
+        border-color: #3f3f46 !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.15) !important;
     }
     
     /* 已上传文件列表 - 紧凑 */
