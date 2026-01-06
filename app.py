@@ -1648,36 +1648,49 @@ with st.sidebar:
     with st.expander("🔗 问题映射", expanded=False):
         import re as re_module
         
-        st.markdown("**① 粘贴表单链接**")
+        st.caption("① 粘贴表单链接")
         form_url = st.text_input(
             "链接", placeholder="https://comp.ptengine.com/assets/xxx/latest/index.html",
             key="form_url_input", label_visibility="collapsed"
         )
         
+        config_url = None
         if form_url:
             match = re_module.search(r'/assets/([^/]+)/', form_url)
             if match:
                 config_url = f"https://comp.ptengine.com/assets/{match.group(1)}/latest/config.json"
-                st.markdown(f'<div style="background:#e8f4fd;padding:8px;border-radius:4px;margin:6px 0;font-size:12px;">② 打开链接 → Ctrl+A全选 → Ctrl+C复制<br><a href="{config_url}" target="_blank" style="word-break:break-all;">{config_url}</a></div>', unsafe_allow_html=True)
+                st.caption("② 点击链接打开 → Ctrl+A → Ctrl+C")
+                st.code(config_url)
         
-        st.markdown("**③ 粘贴内容**")
+        st.caption("③ 粘贴内容后点击【解析】")
         config_text = st.text_area(
-            "内容", height=80, key="config_text_input", 
-            label_visibility="collapsed", placeholder="粘贴复制的内容..."
+            "内容", height=60, key="config_text_input", 
+            label_visibility="collapsed", placeholder="粘贴JSON内容..."
         )
         
-        if config_text and len(config_text) > 50:
-            question_map = {}
-            matches = re_module.findall(r'"name"\s*:\s*"([^"]+)"[^}]*?"question"\s*:\s*"([^"]+)"', config_text, re_module.DOTALL)
-            for name, question in matches:
-                if not name.startswith('$') and not name.startswith('表单页'):
-                    question_map[name] = question
-            if question_map:
-                st.session_state['question_map'] = question_map
-                st.success(f"✅ 已加载 {len(question_map)} 个问题")
+        # 添加解析按钮
+        if st.button("🔍 解析", key="parse_config_btn", use_container_width=True):
+            if config_text and len(config_text) > 50:
+                question_map = {}
+                matches = re_module.findall(r'"name"\s*:\s*"([^"]+)"[^}]*?"question"\s*:\s*"([^"]+)"', config_text, re_module.DOTALL)
+                for name, question in matches:
+                    if not name.startswith('$') and not name.startswith('表单页'):
+                        question_map[name] = question
+                if question_map:
+                    st.session_state['question_map'] = question_map
+                    st.success(f"✅ 已加载 {len(question_map)} 个问题")
+                else:
+                    st.warning("⚠️ 未找到问题")
+            else:
+                st.warning("⚠️ 请先粘贴内容")
         
+        # 显示当前映射
         if st.session_state.get('question_map'):
-            if st.button("🗑️ 清除映射", key="clear_map"):
+            st.markdown("---")
+            st.caption(f"📋 已加载 {len(st.session_state['question_map'])} 个映射:")
+            for k, v in list(st.session_state['question_map'].items())[:3]:
+                st.caption(f"• {k}: {v[:30]}...")
+            if st.button("🗑️ 清除", key="clear_map"):
                 st.session_state['question_map'] = {}
     
     # 全局筛选器
@@ -2298,6 +2311,16 @@ if uploaded_file:
 
             with tab1:
                 st.markdown("#### 📄 原始数据预览")
+                
+                # 如果有问题映射，显示列名对应的完整问题
+                question_map = st.session_state.get('question_map', {})
+                if question_map:
+                    mapped_cols = [col for col in df.columns if col in question_map]
+                    if mapped_cols:
+                        with st.expander(f"📋 字段映射 ({len(mapped_cols)} 个)", expanded=False):
+                            for col in mapped_cols:
+                                st.caption(f"**{col}** → {question_map[col]}")
+                
                 st.dataframe(df, use_container_width=True, height=400)
                 
                 st.markdown("#### 📈 数据统计摘要")
@@ -2424,11 +2447,20 @@ if uploaded_file:
                 if not col_select_list:
                     st.warning("⚠️ 请至少选择一个变量进行分析")
                 else:
+                    # 获取问题映射
+                    question_map = st.session_state.get('question_map', {})
+                    
                     # 为每个选中的列生成图表
                     for idx, col_select in enumerate(col_select_list):
                         # 使用容器创建更好的视觉分隔
                         with st.container():
-                            st.markdown(f"### 📌 {col_select}")
+                            # 显示字段名和完整问题（如果有映射）
+                            full_question = question_map.get(col_select, "")
+                            if full_question:
+                                st.markdown(f"### 📌 {col_select}")
+                                st.caption(f"📝 {full_question}")
+                            else:
+                                st.markdown(f"### 📌 {col_select}")
                 
                             # 智能判断图表类型
                             is_numeric = pd.api.types.is_numeric_dtype(df[col_select])
