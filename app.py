@@ -197,25 +197,43 @@ st.markdown("""
     }
     
     [data-testid="stSidebar"] > div:first-child {
-        padding: 1rem !important;
+        padding: 1rem 0.75rem !important;
     }
     
     [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-        gap: 0.25rem !important;
+        gap: 0.5rem !important;
+    }
+    
+    /* 侧边栏内组件间距 */
+    [data-testid="stSidebar"] [data-testid="stExpander"] {
+        margin-bottom: 0.5rem;
+    }
+    
+    [data-testid="stSidebar"] .stSelectbox,
+    [data-testid="stSidebar"] .stTextInput {
+        margin-bottom: 0.25rem;
+    }
+    
+    /* 侧边栏标签文字 */
+    [data-testid="stSidebar"] label {
+        font-size: 0.75rem !important;
+        font-weight: 500 !important;
+        color: var(--muted-foreground) !important;
+        margin-bottom: 0.25rem !important;
     }
     
     /* 侧边栏头部 */
     .sidebar-header {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        padding: 0.5rem 0 1rem;
-        margin-bottom: 1rem;
+        gap: 0.5rem;
+        padding: 0.25rem 0 0.75rem;
+        margin-bottom: 0.75rem;
         border-bottom: 1px solid var(--border);
     }
     
     .sidebar-logo {
-        width: 36px;
+        width: 28px;
         height: 36px;
         background: var(--brand);
         border-radius: var(--radius);
@@ -1561,8 +1579,8 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    # 数据上传区
-    st.markdown('<div class="sidebar-section-title">📁 数据上传</div>', unsafe_allow_html=True)
+    # 数据上传区 - 紧凑标题
+    st.caption("📁 数据上传")
     uploaded_file = st.file_uploader(
         "上传调研数据 (Excel/CSV)", 
         type=["csv", "xlsx", "pdf", "docx"],
@@ -2277,8 +2295,47 @@ if uploaded_file:
             with tab1:
                 st.markdown("#### 📄 原始数据预览")
                 
-                # 如果有问题映射，显示列名对应的完整问题
+                # 获取问题映射
                 question_map = st.session_state.get('question_map', {})
+                
+                # 工具栏：切换显示模式 + 下载按钮
+                toolbar_col1, toolbar_col2, toolbar_col3 = st.columns([2, 1, 1])
+                
+                with toolbar_col1:
+                    if question_map:
+                        display_mode = st.radio(
+                            "列名显示",
+                            ["简写字段名", "完整问题"],
+                            horizontal=True,
+                            key="display_mode_radio"
+                        )
+                    else:
+                        display_mode = "简写字段名"
+                
+                with toolbar_col3:
+                    # 下载按钮
+                    csv_data = df.to_csv(index=False).encode('utf-8-sig')
+                    st.download_button(
+                        label="📥 下载 CSV",
+                        data=csv_data,
+                        file_name=f"survey_data_{uploaded_file.name.split('.')[0]}.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
+                
+                # 根据显示模式处理数据
+                display_df = df.copy()
+                if question_map and display_mode == "完整问题":
+                    # 将列名替换为完整问题
+                    new_columns = []
+                    for col in df.columns:
+                        if col in question_map:
+                            new_columns.append(question_map[col][:50] + "..." if len(question_map[col]) > 50 else question_map[col])
+                        else:
+                            new_columns.append(col)
+                    display_df.columns = new_columns
+                
+                # 显示字段映射（折叠）
                 if question_map:
                     mapped_cols = [col for col in df.columns if col in question_map]
                     if mapped_cols:
@@ -2286,7 +2343,7 @@ if uploaded_file:
                             for col in mapped_cols:
                                 st.caption(f"**{col}** → {question_map[col]}")
                 
-                st.dataframe(df, use_container_width=True, height=400)
+                st.dataframe(display_df, use_container_width=True, height=400)
                 
                 st.markdown("#### 📈 数据统计摘要")
                 col_a, col_b = st.columns(2)
@@ -3160,15 +3217,22 @@ if uploaded_file:
                                                         hovertemplate='<b>%{x}</b><br>人数: %{y}<extra></extra>'
                                                     ))
                                                     
+                                                    # 处理长标签
+                                                    short_labels = [str(x)[:20] + '...' if len(str(x)) > 20 else str(x) for x in co_df['同时选择的选项']]
+                                                    fig_combo.update_traces(x=short_labels)
+                                                    
                                                     fig_combo.update_layout(
-                                                        title=f"选择「{selected_option}」的人同时还选了什么？",
-                                                        xaxis_title="其他选项",
+                                                        title=f"选择「{selected_option[:20]}...」的人同时还选了什么？" if len(selected_option) > 20 else f"选择「{selected_option}」的人同时还选了什么？",
+                                                        xaxis_title="",
                                                         yaxis_title="人数",
-                                                        height=350,
+                                                        height=400,
                                                         plot_bgcolor='rgba(0,0,0,0)',
                                                         paper_bgcolor='rgba(0,0,0,0)',
-                                                        xaxis_tickangle=-45 if len(co_df) > 5 else 0,
-                                                        margin=dict(b=100)
+                                                        xaxis_tickangle=-45,
+                                                        margin=dict(b=150, t=60, l=50, r=20),
+                                                        xaxis=dict(tickfont=dict(size=9)),
+                                                        uniformtext_minsize=8,
+                                                        uniformtext_mode='hide'
                                                     )
                                                     st.plotly_chart(fig_combo, use_container_width=True)
                                                     
