@@ -1194,25 +1194,37 @@ def create_ppt_report(title, sections, include_charts=True):
         p.font.size = PptxPt(24)
         p.font.bold = True
         
-        # 添加图表
+        # 添加图表 - 占据更大空间
         if include_charts and 'chart_image' in section and section['chart_image'] is not None:
             img_stream = BytesIO(section['chart_image'])
-            slide.shapes.add_picture(img_stream, PptxInches(0.5), PptxInches(1.2), width=PptxInches(8))
+            # 图表占据整个幻灯片宽度，更美观
+            slide.shapes.add_picture(img_stream, PptxInches(0.5), PptxInches(1.2), width=PptxInches(12.333))
         
-        # 添加数据摘要
+        # 数据摘要改为右上角小标签形式（英文避免乱码）
         if 'summary' in section:
-            txBox = slide.shapes.add_textbox(PptxInches(8.8), PptxInches(1.2), PptxInches(4), PptxInches(5))
+            # 将中文摘要转换为英文格式
+            summary_text = section['summary']
+            # 替换中文为英文
+            summary_text = summary_text.replace('总样本数:', 'Total:')
+            summary_text = summary_text.replace('总样本:', 'Total:')
+            summary_text = summary_text.replace('最常见选项:', 'Top:')
+            summary_text = summary_text.replace('最常见:', 'Top:')
+            summary_text = summary_text.replace('数量:', 'Count:')
+            summary_text = summary_text.replace('唯一值数量:', 'Unique:')
+            summary_text = summary_text.replace('唯一值:', 'Unique:')
+            summary_text = summary_text.replace('种', '')
+            
+            # 右上角添加简洁的数据标签
+            txBox = slide.shapes.add_textbox(PptxInches(9.5), PptxInches(0.3), PptxInches(3.5), PptxInches(0.6))
             tf = txBox.text_frame
             tf.word_wrap = True
             p = tf.paragraphs[0]
-            p.text = "数据摘要"
-            p.font.size = PptxPt(16)
-            p.font.bold = True
-            
-            # 添加摘要内容
-            p2 = tf.add_paragraph()
-            p2.text = section['summary'][:500]  # 限制长度
-            p2.font.size = PptxPt(12)
+            # 只显示核心数据，一行展示
+            summary_parts = summary_text.split(',')
+            p.text = ', '.join(summary_parts[:2]) if len(summary_parts) > 1 else summary_text[:60]
+            p.font.size = PptxPt(10)
+            p.font.color.rgb = PptxRGBColor(128, 128, 128)
+            p.alignment = PP_ALIGN.RIGHT
     
     # 保存到字节流
     ppt_bytes = BytesIO()
@@ -1318,7 +1330,7 @@ def get_export_data_for_question(question_name, df, value_counts_df, fig=None):
         top_count = top_item['count']
         top_pct = (top_count / total * 100)
         
-        section['summary'] = f"总样本数: {total}\n最常见选项: {top_name}\n数量: {top_count} ({top_pct:.1f}%)\n唯一值数量: {len(value_counts_df)}"
+        section['summary'] = f"Total: {total}, Top: {top_name}, Count: {top_count} ({top_pct:.1f}%), Unique: {len(value_counts_df)}"
     
     # 生成图表图片
     if fig is not None and KALEIDO_AVAILABLE:
@@ -1533,7 +1545,7 @@ def generate_all_export_sections(df, selected_columns):
             top_count = value_counts.values[0] if len(value_counts) > 0 else 0
             top_pct = (top_count / total * 100) if total > 0 else 0
             
-            section['summary'] = f"总样本: {total}, 最常见: {str(top_val)[:30]}, 数量: {top_count} ({top_pct:.1f}%), 唯一值: {len(value_counts)}种"
+            section['summary'] = f"Total: {total}, Top: {str(top_val)[:30]}, Count: {top_count} ({top_pct:.1f}%), Unique: {len(value_counts)}"
             
             # 生成饼图
             try:
