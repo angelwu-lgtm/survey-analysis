@@ -1624,100 +1624,31 @@ with st.sidebar:
         </div>
         """, unsafe_allow_html=True)
     
-    # 问题映射配置 (Ptengine 表单配置)
+    # 问题映射配置 - 简化版手动输入
     with st.expander("🔗 问题映射配置", expanded=False):
-        st.caption("输入 Asset ID 自动获取问题映射")
+        st.caption("将字段名映射到完整问题（每行: 字段名=完整问题）")
         
-        # 解析配置的函数
-        def parse_ptengine_config(config_content):
-            """解析 Ptengine 表单配置，提取问题映射"""
+        manual_map = st.text_area(
+            "字段映射",
+            placeholder="Age=What is your age?\nWorkRole=What is your work role?",
+            height=100,
+            key="manual_question_map",
+            label_visibility="collapsed"
+        )
+        
+        if manual_map:
             question_map = {}
-            try:
-                if 'pages' in config_content:
-                    for page in config_content.get('pages', []):
-                        for element in page.get('elements', []):
-                            field_name = element.get('name', '')
-                            question_text = element.get('title', '') or element.get('label', '') or field_name
-                            if field_name:
-                                question_map[field_name] = question_text
-                elif 'elements' in config_content:
-                    for element in config_content.get('elements', []):
-                        field_name = element.get('name', '')
-                        question_text = element.get('title', '') or element.get('label', '') or field_name
-                        if field_name:
-                            question_map[field_name] = question_text
-                if not question_map:
-                    def find_fields(obj, result):
-                        if isinstance(obj, dict):
-                            if 'name' in obj and ('title' in obj or 'label' in obj):
-                                name = obj.get('name', '')
-                                title = obj.get('title', '') or obj.get('label', '') or name
-                                if name:
-                                    result[name] = title
-                            for v in obj.values():
-                                find_fields(v, result)
-                        elif isinstance(obj, list):
-                            for item in obj:
-                                find_fields(item, result)
-                    find_fields(config_content, question_map)
-            except Exception:
-                pass
-            return question_map
+            for line in manual_map.strip().split('\n'):
+                if '=' in line:
+                    key, value = line.split('=', 1)
+                    question_map[key.strip()] = value.strip()
+            if question_map:
+                st.session_state['question_map'] = question_map
+                st.success(f"✅ 已保存 {len(question_map)} 个映射")
         
-        # 简化输入：Asset ID 或链接
-        col_input, col_btn = st.columns([3, 1])
-        with col_input:
-            asset_input = st.text_input(
-                "Asset ID",
-                placeholder="cmisa0xpf0005981yg5jpife1",
-                help="粘贴 Asset ID 或链接",
-                key="asset_id_input",
-                label_visibility="collapsed"
-            )
-        with col_btn:
-            fetch_btn = st.button("获取", key="fetch_asset_btn", use_container_width=True)
-        
-        if fetch_btn and asset_input:
-            import re
-            asset_id = None
-            url_match = re.search(r'/assets/([^/]+)/', asset_input)
-            if url_match:
-                asset_id = url_match.group(1)
-            elif 'assetId' in asset_input:
-                js_match = re.search(r"assetId\s*=\s*['\"]([^'\"]+)['\"]", asset_input)
-                if js_match:
-                    asset_id = js_match.group(1)
-            else:
-                cleaned = asset_input.strip().strip("'\"")
-                if len(cleaned) >= 10:
-                    asset_id = cleaned
-            
-            if asset_id:
-                config_url = f"https://comp.ptengine.com/assets/{asset_id}/latest/config.json"
-                try:
-                    with st.spinner("获取中..."):
-                        response = requests.get(config_url, timeout=15)
-                        if response.status_code == 200:
-                            config_content = response.json()
-                            question_map = parse_ptengine_config(config_content)
-                            if question_map:
-                                st.session_state['question_map'] = question_map
-                                st.success(f"✅ 已加载 {len(question_map)} 个问题")
-                            else:
-                                st.warning("⚠️ 未找到问题映射")
-                        else:
-                            st.error(f"获取失败: HTTP {response.status_code}")
-                except Exception as e:
-                    st.error(f"获取失败: {str(e)[:50]}")
-            else:
-                st.warning("⚠️ 无法识别 Asset ID")
-        
-        # 显示当前状态
         if 'question_map' in st.session_state and st.session_state['question_map']:
-            st.caption(f"📋 已加载 {len(st.session_state['question_map'])} 个问题映射")
             if st.button("🗑️ 清除", key="clear_map_btn"):
                 st.session_state['question_map'] = {}
-                st.success("已清除")
     
     # 全局筛选器
     st.markdown('<div class="sidebar-section-title">🎯 全局过滤</div>', unsafe_allow_html=True)
@@ -2337,21 +2268,6 @@ if uploaded_file:
 
             with tab1:
                 st.markdown("#### 📄 原始数据预览")
-                
-                # 如果有问题映射，显示字段与完整问题的对照表
-                question_map = st.session_state.get('question_map', {})
-                if question_map:
-                    with st.expander("📝 字段-问题映射表", expanded=False):
-                        mapped_cols = []
-                        for col in df.columns:
-                            full_q = question_map.get(col, "")
-                            if full_q and full_q != col:
-                                mapped_cols.append({"字段名": col, "完整问题": full_q})
-                        if mapped_cols:
-                            st.dataframe(pd.DataFrame(mapped_cols), use_container_width=True, hide_index=True)
-                        else:
-                            st.info("当前数据列未匹配到问题映射")
-                
                 st.dataframe(df, use_container_width=True, height=400)
                 
                 st.markdown("#### 📈 数据统计摘要")
@@ -2478,20 +2394,11 @@ if uploaded_file:
                 if not col_select_list:
                     st.warning("⚠️ 请至少选择一个变量进行分析")
                 else:
-                    # 获取问题映射
-                    question_map = st.session_state.get('question_map', {})
-                    
                     # 为每个选中的列生成图表
                     for idx, col_select in enumerate(col_select_list):
                         # 使用容器创建更好的视觉分隔
                         with st.container():
-                            # 显示完整问题（如果有映射）
-                            full_question = question_map.get(col_select, col_select)
-                            if full_question != col_select:
-                                st.markdown(f"### 📌 {col_select}")
-                                st.caption(f"📝 完整问题: {full_question}")
-                            else:
-                                st.markdown(f"### 📌 {col_select}")
+                            st.markdown(f"### 📌 {col_select}")
                 
                             # 智能判断图表类型
                             is_numeric = pd.api.types.is_numeric_dtype(df[col_select])
