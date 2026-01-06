@@ -1624,6 +1624,77 @@ with st.sidebar:
         </div>
         """, unsafe_allow_html=True)
     
+    # 问题映射配置 (Ptengine 表单配置)
+    with st.expander("🔗 问题映射配置", expanded=False):
+        st.caption("上传 Ptengine 表单配置，将简写字段名映射到完整问题")
+        
+        config_file = st.file_uploader(
+            "上传 config.json",
+            type=["json"],
+            help="从 Ptengine 导出的表单配置文件",
+            key="config_json_upload"
+        )
+        
+        if config_file:
+            try:
+                config_content = json.loads(config_file.read().decode('utf-8'))
+                # 解析 supa-form 配置，提取问题映射
+                question_map = {}
+                
+                # 尝试从配置中提取问题
+                if 'pages' in config_content:
+                    for page in config_content.get('pages', []):
+                        for element in page.get('elements', []):
+                            field_name = element.get('name', '')
+                            question_text = element.get('title', '') or element.get('label', '') or field_name
+                            if field_name:
+                                question_map[field_name] = question_text
+                elif 'elements' in config_content:
+                    for element in config_content.get('elements', []):
+                        field_name = element.get('name', '')
+                        question_text = element.get('title', '') or element.get('label', '') or field_name
+                        if field_name:
+                            question_map[field_name] = question_text
+                elif 'fields' in config_content:
+                    for field in config_content.get('fields', []):
+                        field_name = field.get('name', '') or field.get('id', '')
+                        question_text = field.get('title', '') or field.get('label', '') or field.get('question', '') or field_name
+                        if field_name:
+                            question_map[field_name] = question_text
+                
+                if question_map:
+                    st.session_state['question_map'] = question_map
+                    st.success(f"✅ 已解析 {len(question_map)} 个问题映射")
+                    with st.expander("查看映射", expanded=False):
+                        for k, v in question_map.items():
+                            st.text(f"{k} → {v[:50]}...")
+                else:
+                    st.warning("⚠️ 未找到问题映射，请检查配置格式")
+            except Exception as e:
+                st.error(f"解析配置失败: {e}")
+        
+        st.markdown("---")
+        st.caption("或手动输入映射 (每行一个: 字段名=完整问题)")
+        manual_map = st.text_area(
+            "手动映射",
+            placeholder="Age=What is your age?\nWorkRole=What is your work role?",
+            height=100,
+            key="manual_question_map"
+        )
+        
+        if manual_map:
+            try:
+                question_map = {}
+                for line in manual_map.strip().split('\n'):
+                    if '=' in line:
+                        key, value = line.split('=', 1)
+                        question_map[key.strip()] = value.strip()
+                if question_map:
+                    st.session_state['question_map'] = question_map
+                    st.success(f"✅ 已保存 {len(question_map)} 个映射")
+            except:
+                pass
+    
     # 全局筛选器
     st.markdown('<div class="sidebar-section-title">🎯 全局过滤</div>', unsafe_allow_html=True)
     filter_segment = st.selectbox(
@@ -2242,6 +2313,21 @@ if uploaded_file:
 
             with tab1:
                 st.markdown("#### 📄 原始数据预览")
+                
+                # 如果有问题映射，显示字段与完整问题的对照表
+                question_map = st.session_state.get('question_map', {})
+                if question_map:
+                    with st.expander("📝 字段-问题映射表", expanded=False):
+                        mapped_cols = []
+                        for col in df.columns:
+                            full_q = question_map.get(col, "")
+                            if full_q and full_q != col:
+                                mapped_cols.append({"字段名": col, "完整问题": full_q})
+                        if mapped_cols:
+                            st.dataframe(pd.DataFrame(mapped_cols), use_container_width=True, hide_index=True)
+                        else:
+                            st.info("当前数据列未匹配到问题映射")
+                
                 st.dataframe(df, use_container_width=True, height=400)
                 
                 st.markdown("#### 📈 数据统计摘要")
@@ -2368,11 +2454,20 @@ if uploaded_file:
                 if not col_select_list:
                     st.warning("⚠️ 请至少选择一个变量进行分析")
                 else:
+                    # 获取问题映射
+                    question_map = st.session_state.get('question_map', {})
+                    
                     # 为每个选中的列生成图表
                     for idx, col_select in enumerate(col_select_list):
                         # 使用容器创建更好的视觉分隔
                         with st.container():
-                            st.markdown(f"### 📌 {col_select}")
+                            # 显示完整问题（如果有映射）
+                            full_question = question_map.get(col_select, col_select)
+                            if full_question != col_select:
+                                st.markdown(f"### 📌 {col_select}")
+                                st.caption(f"📝 完整问题: {full_question}")
+                            else:
+                                st.markdown(f"### 📌 {col_select}")
                 
                             # 智能判断图表类型
                             is_numeric = pd.api.types.is_numeric_dtype(df[col_select])
