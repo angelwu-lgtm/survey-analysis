@@ -1600,13 +1600,100 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    # 数据上传区
-    st.caption("📁 数据上传")
-    uploaded_file = st.file_uploader(
-        "上传调研数据 (Excel/CSV)", 
-        type=["csv", "xlsx", "pdf", "docx"],
-        help="支持格式: CSV, Excel, PDF, Word | 最大 200MB"
+    # 数据来源选择
+    st.caption("📁 数据来源")
+    data_source = st.radio(
+        "选择数据来源",
+        ["📤 上传文件", "🔑 Form ID"],
+        key="data_source_radio",
+        horizontal=True,
+        label_visibility="collapsed"
     )
+    
+    uploaded_file = None
+    
+    if data_source == "🔑 Form ID":
+        st.markdown("""
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 0.5rem; padding: 0.5rem; margin-bottom: 0.5rem; font-size: 0.7rem;">
+            <strong>💡 提示</strong>: 输入 Ptengine 表单 ID 获取数据
+        </div>
+        """, unsafe_allow_html=True)
+        
+        form_id = st.text_input(
+            "Form ID",
+            placeholder="例如: cmisa0xpf0005981yg5jpife1",
+            key="ptengine_form_id",
+            label_visibility="collapsed"
+        )
+        
+        if form_id:
+            if st.button("🔄 获取数据", key="fetch_form_data", use_container_width=True):
+                with st.spinner("正在获取数据..."):
+                    try:
+                        # 尝试多个可能的 API 端点
+                        api_endpoints = [
+                            f"https://ecagent.ptengine.com/api/form/{form_id}/data",
+                            f"https://ecagent.ptengine.com/api/form/{form_id}/export",
+                            f"https://ecbi.ptengine.com/api/form/{form_id}/data",
+                            f"https://ecbi.ptengine.com/api/v1/form/{form_id}",
+                        ]
+                        
+                        headers = {
+                            'Accept': 'application/json, text/plain, */*',
+                            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+                        }
+                        
+                        data_fetched = False
+                        for api_url in api_endpoints:
+                            try:
+                                response = requests.get(api_url, headers=headers, timeout=10)
+                                if response.status_code == 200:
+                                    content_type = response.headers.get('content-type', '')
+                                    if 'json' in content_type:
+                                        json_data = response.json()
+                                        if json_data and isinstance(json_data, (list, dict)):
+                                            # 转换为 DataFrame
+                                            if isinstance(json_data, list):
+                                                df = pd.DataFrame(json_data)
+                                            else:
+                                                df = pd.DataFrame([json_data])
+                                            
+                                            if len(df) > 0:
+                                                st.session_state['form_df'] = df
+                                                st.session_state['form_id_loaded'] = form_id
+                                                st.success(f"✅ 获取到 {len(df)} 条数据！")
+                                                data_fetched = True
+                                                break
+                            except Exception:
+                                continue
+                        
+                        if not data_fetched:
+                            st.warning("""
+                            ⚠️ **无法通过 API 获取数据**
+                            
+                            Ptengine 表单数据需要认证才能访问。
+                            
+                            **请使用以下方式：**
+                            1. 登录 Ptengine 后台
+                            2. 导出表单数据为 CSV
+                            3. 切换到「上传文件」导入
+                            """)
+                    except Exception as e:
+                        st.error(f"获取失败: {str(e)}")
+        
+        # 如果已经通过 Form ID 获取了数据，显示提示
+        if 'form_df' in st.session_state and st.session_state.get('form_id_loaded'):
+            st.markdown(f"""
+            <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 0.5rem; padding: 0.5rem; font-size: 0.7rem;">
+                ✅ 已加载 Form: {st.session_state['form_id_loaded'][:20]}...
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        uploaded_file = st.file_uploader(
+            "上传调研数据 (Excel/CSV)", 
+            type=["csv", "xlsx", "pdf", "docx"],
+            help="支持格式: CSV, Excel, PDF, Word | 最大 200MB"
+        )
     
     if uploaded_file:
         st.markdown(f"""
