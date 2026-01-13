@@ -1600,33 +1600,13 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    # 数据来源选择
-    st.caption("📁 数据来源")
-    data_source = st.radio(
-        "选择数据来源",
-        ["📤 上传文件", "🔑 Form ID"],
-        key="data_source_radio",
-        horizontal=True,
-        label_visibility="collapsed"
+    # 数据上传区
+    st.caption("📁 数据上传")
+    uploaded_file = st.file_uploader(
+        "上传调研数据 (Excel/CSV)", 
+        type=["csv", "xlsx", "pdf", "docx"],
+        help="支持格式: CSV, Excel, PDF, Word | 最大 200MB"
     )
-    
-    uploaded_file = None
-    
-    if data_source == "🔑 Form ID":
-        st.markdown("""
-        <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 0.5rem; padding: 0.5rem; margin-bottom: 0.5rem; font-size: 0.7rem;">
-            <strong>⚠️ 暂不支持</strong><br>
-            Ptengine API 需要认证，请使用「上传文件」方式
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.caption("请切换到「上传文件」导入 CSV 数据")
-    else:
-        uploaded_file = st.file_uploader(
-            "上传调研数据 (Excel/CSV)", 
-            type=["csv", "xlsx", "pdf", "docx"],
-            help="支持格式: CSV, Excel, PDF, Word | 最大 200MB"
-        )
     
     if uploaded_file:
         st.markdown(f"""
