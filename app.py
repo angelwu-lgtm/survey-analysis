@@ -1600,25 +1600,83 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    # 数据上传区
-    st.caption("📁 数据上传")
-    uploaded_file = st.file_uploader(
-        "上传调研数据 (Excel/CSV)", 
-        type=["csv", "xlsx", "pdf", "docx"],
-        help="支持格式: CSV, Excel, PDF, Word | 最大 200MB"
+    # 数据来源选择
+    st.caption("📁 数据来源")
+    data_source = st.radio(
+        "选择方式",
+        ["📤 上传文件", "🔗 报告链接"],
+        key="data_source_radio",
+        horizontal=True,
+        label_visibility="collapsed"
     )
     
-    if uploaded_file:
-        st.markdown(f"""
-        <div class="upload-success">
-            <span class="upload-success-icon">✓</span>
-            <span class="upload-success-text">文件已加载</span>
-            <div class="upload-file-info">
-                📄 {uploaded_file.name}<br>
-                💾 {uploaded_file.size / 1024:.1f} KB
-            </div>
+    uploaded_file = None
+    
+    if data_source == "🔗 报告链接":
+        st.markdown("""
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 0.5rem; padding: 0.5rem; margin-bottom: 0.5rem; font-size: 0.7rem;">
+            <strong>💡 提示</strong>: 粘贴 Ptengine 报告 CSV 链接
         </div>
         """, unsafe_allow_html=True)
+        
+        csv_url = st.text_input(
+            "CSV 链接",
+            placeholder="https://ecbi.ptengine.com/public/question/xxx.csv",
+            key="ptengine_csv_url",
+            label_visibility="collapsed"
+        )
+        
+        if csv_url and ".csv" in csv_url:
+            if st.button("🔄 获取数据", key="fetch_csv_data", use_container_width=True):
+                with st.spinner("正在获取数据..."):
+                    try:
+                        response = requests.get(csv_url, timeout=30)
+                        if response.status_code == 200:
+                            # 解析 CSV 数据
+                            csv_content = response.text
+                            df_from_url = pd.read_csv(StringIO(csv_content))
+                            
+                            if len(df_from_url) > 0:
+                                st.session_state['url_df'] = df_from_url
+                                st.session_state['url_source'] = csv_url
+                                st.success(f"✅ 成功获取 {len(df_from_url)} 条数据！")
+                            else:
+                                st.warning("⚠️ CSV 文件为空")
+                        else:
+                            st.error(f"❌ 获取失败: HTTP {response.status_code}")
+                    except Exception as e:
+                        st.error(f"❌ 获取失败: {str(e)}")
+        
+        # 显示已加载的数据状态
+        if 'url_df' in st.session_state:
+            st.markdown(f"""
+            <div class="upload-success">
+                <span class="upload-success-icon">✓</span>
+                <span class="upload-success-text">数据已加载</span>
+                <div class="upload-file-info">
+                    📊 {len(st.session_state['url_df'])} 条记录<br>
+                    📋 {len(st.session_state['url_df'].columns)} 个字段
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        uploaded_file = st.file_uploader(
+            "上传调研数据 (Excel/CSV)", 
+            type=["csv", "xlsx", "pdf", "docx"],
+            help="支持格式: CSV, Excel, PDF, Word | 最大 200MB"
+        )
+        
+        if uploaded_file:
+            st.markdown(f"""
+            <div class="upload-success">
+                <span class="upload-success-icon">✓</span>
+                <span class="upload-success-text">文件已加载</span>
+                <div class="upload-file-info">
+                    📄 {uploaded_file.name}<br>
+                    💾 {uploaded_file.size / 1024:.1f} KB
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
     
     # 问题映射配置
     with st.expander("🔗 问题映射", expanded=False):
@@ -2186,14 +2244,22 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- 主逻辑 ---
-if uploaded_file:
-    file_type = uploaded_file.name.split('.')[-1].lower()
-    
-    # ==========================================
-    # 模块 A: 结构化数据分析 (Excel/CSV)
-    # ==========================================
-    if file_type in ['csv', 'xlsx']:
-        try:
+# 判断数据来源：上传文件 或 URL 获取
+has_data = uploaded_file or ('url_df' in st.session_state)
+
+if has_data:
+    # 根据数据来源获取 DataFrame
+    if 'url_df' in st.session_state and not uploaded_file:
+        # 从 URL 获取的数据
+        df = st.session_state['url_df']
+        file_type = 'csv'
+    elif uploaded_file:
+        file_type = uploaded_file.name.split('.')[-1].lower()
+        
+        # ==========================================
+        # 模块 A: 结构化数据分析 (Excel/CSV)
+        # ==========================================
+        if file_type in ['csv', 'xlsx']:
             # 使用 session_state 缓存数据，彻底避免重复读取
             cache_key = f"df_cache_{uploaded_file.name}_{uploaded_file.size}"
             
@@ -2210,6 +2276,9 @@ if uploaded_file:
             
             # 从 session_state 获取数据
             df = st.session_state[cache_key]
+    
+    if file_type in ['csv', 'xlsx']:
+        try:
             
             # ==========================================
             # 顶部 KPI 仪表盘 - 核心指标一览
