@@ -1620,6 +1620,24 @@ with st.sidebar:
         </div>
         """, unsafe_allow_html=True)
     
+    # CSV 链接获取数据
+    with st.expander("🔗 或：通过链接获取", expanded=False):
+        st.caption("粘贴 Ptengine CSV 报告链接")
+        csv_url = st.text_input("CSV链接", placeholder="https://ecbi.ptengine.com/public/question/xxx.csv", key="csv_url_input", label_visibility="collapsed")
+        if csv_url and ".csv" in csv_url:
+            if st.button("🔄 获取数据", key="fetch_csv_btn", use_container_width=True):
+                try:
+                    resp = requests.get(csv_url, timeout=30)
+                    if resp.status_code == 200:
+                        df_from_url = pd.read_csv(StringIO(resp.text))
+                        if len(df_from_url) > 0:
+                            st.session_state['url_df'] = df_from_url
+                            st.success(f"✅ 成功获取 {len(df_from_url)} 条数据！")
+                except Exception as e:
+                    st.error(f"❌ {str(e)}")
+        if 'url_df' in st.session_state:
+            st.success(f"✅ 已加载 {len(st.session_state['url_df'])} 条数据")
+    
     # 问题映射配置
     with st.expander("🔗 问题映射", expanded=False):
         import re as re_module
@@ -2186,30 +2204,44 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- 主逻辑 ---
-if uploaded_file:
-    file_type = uploaded_file.name.split('.')[-1].lower()
+# 判断数据来源：上传文件优先，其次是 URL 获取的数据
+has_url_data = 'url_df' in st.session_state and st.session_state['url_df'] is not None
+
+if uploaded_file or has_url_data:
+    # 确定文件类型和数据来源
+    if uploaded_file:
+        file_type = uploaded_file.name.split('.')[-1].lower()
+        data_source = 'file'
+    else:
+        file_type = 'csv'  # URL 数据默认为 CSV
+        data_source = 'url'
     
     # ==========================================
     # 模块 A: 结构化数据分析 (Excel/CSV)
     # ==========================================
     if file_type in ['csv', 'xlsx']:
         try:
-            # 使用 session_state 缓存数据，彻底避免重复读取
-            cache_key = f"df_cache_{uploaded_file.name}_{uploaded_file.size}"
-            
-            if cache_key not in st.session_state:
-                # 只在第一次上传时读取数据
-                if file_type == 'csv':
-                    uploaded_file.seek(0)
-                    file_content = uploaded_file.read().decode('utf-8')
-                    st.session_state[cache_key] = load_csv_data(file_content, uploaded_file.name)
-                else:
-                    uploaded_file.seek(0)
-                    file_content = uploaded_file.read()
-                    st.session_state[cache_key] = load_excel_data(file_content, uploaded_file.name)
-            
-            # 从 session_state 获取数据
-            df = st.session_state[cache_key]
+            # 根据数据来源获取 DataFrame
+            if data_source == 'url':
+                # 使用从 URL 获取的数据
+                df = st.session_state['url_df']
+            else:
+                # 使用 session_state 缓存数据，彻底避免重复读取
+                cache_key = f"df_cache_{uploaded_file.name}_{uploaded_file.size}"
+                
+                if cache_key not in st.session_state:
+                    # 只在第一次上传时读取数据
+                    if file_type == 'csv':
+                        uploaded_file.seek(0)
+                        file_content = uploaded_file.read().decode('utf-8')
+                        st.session_state[cache_key] = load_csv_data(file_content, uploaded_file.name)
+                    else:
+                        uploaded_file.seek(0)
+                        file_content = uploaded_file.read()
+                        st.session_state[cache_key] = load_excel_data(file_content, uploaded_file.name)
+                
+                # 从 session_state 获取数据
+                df = st.session_state[cache_key]
             
             # ==========================================
             # 顶部 KPI 仪表盘 - 核心指标一览
@@ -2336,10 +2368,11 @@ if uploaded_file:
                 with toolbar_col3:
                     # 下载按钮
                     csv_data = df.to_csv(index=False).encode('utf-8-sig')
+                    file_prefix = uploaded_file.name.split('.')[0] if uploaded_file else "url_data"
                     st.download_button(
                         label="📥 下载 CSV",
                         data=csv_data,
-                        file_name=f"survey_data_{uploaded_file.name.split('.')[0]}.csv",
+                        file_name=f"survey_data_{file_prefix}.csv",
                         mime="text/csv",
                         use_container_width=True
                     )
@@ -2474,7 +2507,8 @@ if uploaded_file:
                 st.markdown("选择一个或多个变量,系统将自动生成适合的可视化图表")
                 
                 # 初始化默认选择（只在第一次时设置）
-                default_key = f"default_cols_{uploaded_file.name}"
+                data_key = uploaded_file.name if uploaded_file else "url_data"
+                default_key = f"default_cols_{data_key}"
                 if default_key not in st.session_state:
                     st.session_state[default_key] = [df.columns[0]] if len(df.columns) > 0 else []
                 
