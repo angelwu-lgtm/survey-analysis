@@ -2083,27 +2083,56 @@ with st.sidebar:
         color: rgba(255, 255, 255, 0.8) !important;
     }
     
-    /* 侧边栏输入框样式 - 透明背景（与上传区域一致） */
-    [data-testid="stSidebar"] .stTextInput > div > div > input {
+    /* 侧边栏输入框样式 - 透明背景白色文字 */
+    [data-testid="stSidebar"] .stTextInput > div > div > input,
+    [data-testid="stSidebar"] .stTextInput input,
+    [data-testid="stSidebar"] input[type="text"],
+    [data-testid="stSidebar"] [data-baseweb="input"] input {
         background: transparent !important;
+        background-color: transparent !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
         color: white !important;
         border-radius: 0.375rem !important;
+        -webkit-text-fill-color: white !important;
+        caret-color: white !important;
     }
     
-    [data-testid="stSidebar"] .stTextInput > div > div > input::placeholder {
+    [data-testid="stSidebar"] .stTextInput > div > div > input::placeholder,
+    [data-testid="stSidebar"] input::placeholder {
         color: rgba(255, 255, 255, 0.5) !important;
+        -webkit-text-fill-color: rgba(255, 255, 255, 0.5) !important;
     }
     
-    /* 侧边栏 text_area 样式 - 透明背景 */
-    [data-testid="stSidebar"] .stTextArea textarea {
+    /* 侧边栏 text_area 样式 - 透明背景白色文字 */
+    [data-testid="stSidebar"] .stTextArea textarea,
+    [data-testid="stSidebar"] textarea {
         background: transparent !important;
+        background-color: transparent !important;
         color: white !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        -webkit-text-fill-color: white !important;
+        caret-color: white !important;
     }
     
-    [data-testid="stSidebar"] .stTextArea textarea::placeholder {
+    [data-testid="stSidebar"] .stTextArea textarea::placeholder,
+    [data-testid="stSidebar"] textarea::placeholder {
         color: rgba(255, 255, 255, 0.5) !important;
+        -webkit-text-fill-color: rgba(255, 255, 255, 0.5) !important;
+    }
+    
+    /* 自动补全下拉框样式 */
+    [data-testid="stSidebar"] [data-baseweb="popover"] {
+        background: #7B4F8B !important;
+    }
+    
+    [data-testid="stSidebar"] [data-baseweb="popover"] li,
+    [data-testid="stSidebar"] [data-baseweb="menu"] li {
+        color: white !important;
+    }
+    
+    [data-testid="stSidebar"] [data-baseweb="popover"] li:hover,
+    [data-testid="stSidebar"] [data-baseweb="menu"] li:hover {
+        background: rgba(255, 255, 255, 0.15) !important;
     }
     
     /* 侧边栏 caption 样式 */
