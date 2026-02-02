@@ -1597,19 +1597,6 @@ def generate_all_export_sections(df, selected_columns):
 
 # --- 侧边栏 - 专业 SaaS 风格 ---
 with st.sidebar:
-    # Logo 和品牌标题 - Airtable 风格
-    st.markdown("""
-    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0 1.25rem; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.15);">
-        <div style="width: 36px; height: 36px; background: rgba(255,255,255,0.95); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
-            📊
-        </div>
-        <div>
-            <div style="font-size: 1rem; font-weight: 600; color: white; letter-spacing: -0.025em;">Survey Insights</div>
-            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.7);">调研数据洞察平台</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
     # 数据上传区
     st.caption("📁 数据上传")
     uploaded_file = st.file_uploader(
