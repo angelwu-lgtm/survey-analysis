@@ -1820,122 +1820,137 @@ with st.sidebar:
             if st.button("🗑️ 清除映射", key="clear_map"):
                 st.session_state['question_map'] = {}
     
-    # ========== 简洁浅色导航栏 - 参考 GOODFOOD 风格 ==========
+    # ========== 黑白简约导航栏 - Airtable 风格 ==========
     st.markdown("""
     <style>
-    /* 浅色主题侧边栏 - 2种主色：浅灰背景 + 紫色强调 */
+    /* 纯白背景侧边栏 */
     [data-testid="stSidebar"] {
-        background: #F8F9FC !important;
+        background: #ffffff !important;
+        border-right: 1px solid #e5e5e5 !important;
     }
     
     [data-testid="stSidebar"] > div:first-child {
         background: transparent !important;
     }
     
-    /* 侧边栏内所有文字默认深灰色 */
+    /* 侧边栏内所有文字默认黑色 */
     [data-testid="stSidebar"] * {
-        color: #64748b !important;
+        color: #333333 !important;
     }
     
     [data-testid="stSidebar"] label {
-        color: #94a3b8 !important;
+        color: #666666 !important;
     }
     
-    /* Logo 区域 */
+    /* Logo 区域 - 黑白风格 */
     .sidebar-logo {
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        padding: 1rem 0.5rem;
-        margin-bottom: 1.5rem;
+        padding: 1.25rem 0.75rem;
+        margin-bottom: 0.5rem;
+        border-bottom: 1px solid #e5e5e5;
     }
     .sidebar-logo-icon {
-        width: 36px;
-        height: 36px;
-        background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
-        border-radius: 10px;
+        width: 32px;
+        height: 32px;
+        background: #000000;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.25rem;
+        font-size: 1rem;
+        color: white !important;
     }
     .sidebar-logo-text {
         font-size: 1.1rem;
-        font-weight: 700;
-        color: #6366f1 !important;
+        font-weight: 600;
+        color: #000000 !important;
         letter-spacing: -0.5px;
     }
     
-    /* 分组标题 */
-    .nav-section-title {
-        font-size: 0.75rem;
-        font-weight: 700;
+    /* 分组标题 - 带图标的样式 */
+    .nav-group-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        margin-top: 0.25rem;
+        font-size: 0.9rem;
+        font-weight: 600;
         color: #000000 !important;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        padding: 0.75rem 0.75rem 0.5rem;
-        margin-top: 0.75rem;
-        margin-bottom: 0.25rem;
+        cursor: default;
+    }
+    .nav-group-header .icon {
+        font-size: 1.1rem;
+        opacity: 0.7;
     }
     
-    /* 导航按钮默认样式 */
+    /* 子菜单容器 - 左侧竖线 */
+    .nav-submenu {
+        margin-left: 1rem;
+        padding-left: 0.75rem;
+        border-left: 2px solid #e5e5e5;
+    }
+    
+    /* 导航按钮默认样式 - 黑色文字 */
     [data-testid="stSidebar"] .stButton > button {
         background: transparent !important;
         border: none !important;
-        color: #64748b !important;
-        padding: 0.6rem 0.75rem !important;
+        color: #333333 !important;
+        padding: 0.5rem 0.75rem !important;
         font-size: 0.875rem !important;
-        font-weight: 500 !important;
-        border-radius: 8px !important;
+        font-weight: 400 !important;
+        border-radius: 6px !important;
         transition: all 0.15s ease !important;
         text-align: left !important;
         justify-content: flex-start !important;
+        margin: 0.125rem 0 !important;
     }
     
     [data-testid="stSidebar"] .stButton > button:hover {
-        background: #f1f5f9 !important;
-        color: #475569 !important;
+        background: #f5f5f5 !important;
+        color: #000000 !important;
     }
     
-    /* 选中状态的导航按钮 - 深蓝色背景，高对比度 */
+    /* 选中状态的导航按钮 - 深灰/黑色背景 */
     [data-testid="stSidebar"] .stButton > button[kind="primary"] {
-        background: #4f46e5 !important;
+        background: #404040 !important;
         color: #ffffff !important;
-        font-weight: 600 !important;
-        box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25) !important;
+        font-weight: 500 !important;
         border: none !important;
     }
     
     [data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {
-        background: #4338ca !important;
+        background: #333333 !important;
         color: #ffffff !important;
     }
     
     /* 侧边栏 selectbox 样式 */
     [data-testid="stSidebar"] .stSelectbox > div > div {
-        background: white !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 8px !important;
-        color: #475569 !important;
+        background: #f5f5f5 !important;
+        border: 1px solid #e5e5e5 !important;
+        border-radius: 6px !important;
+        color: #333333 !important;
     }
     
     [data-testid="stSidebar"] .stSelectbox > div > div > div {
-        color: #475569 !important;
+        color: #333333 !important;
     }
     
     [data-testid="stSidebar"] .stSelectbox svg {
-        fill: #94a3b8 !important;
+        fill: #666666 !important;
     }
     
     [data-testid="stSidebar"] .stSelectbox > div > div:hover {
-        border-color: #6366f1 !important;
+        border-color: #999999 !important;
     }
     
     /* 侧边栏 expander 样式 */
     [data-testid="stSidebar"] [data-testid="stExpander"] {
-        background: white !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 8px !important;
+        background: #f5f5f5 !important;
+        border: 1px solid #e5e5e5 !important;
+        border-radius: 6px !important;
     }
     
     [data-testid="stSidebar"] [data-testid="stExpander"] > details {
@@ -1944,25 +1959,25 @@ with st.sidebar:
     
     [data-testid="stSidebar"] [data-testid="stExpander"] > details > summary {
         background: transparent !important;
-        color: #475569 !important;
+        color: #333333 !important;
         font-weight: 500 !important;
     }
     
     [data-testid="stSidebar"] [data-testid="stExpander"] > details > summary > span,
     [data-testid="stSidebar"] [data-testid="stExpander"] > details > summary > span > span,
     [data-testid="stSidebar"] [data-testid="stExpander"] > details > summary p {
-        color: #475569 !important;
+        color: #333333 !important;
     }
     
     /* expander 箭头图标 */
     [data-testid="stSidebar"] [data-testid="stExpander"] svg {
-        fill: #94a3b8 !important;
-        stroke: #94a3b8 !important;
+        fill: #666666 !important;
+        stroke: #666666 !important;
     }
     
     [data-testid="stSidebar"] .streamlit-expanderHeader {
         background: transparent !important;
-        color: #475569 !important;
+        color: #333333 !important;
     }
     
     [data-testid="stSidebar"] .streamlit-expanderContent {
@@ -1979,12 +1994,12 @@ with st.sidebar:
     [data-testid="stSidebar"] [data-testid="stExpander"] span,
     [data-testid="stSidebar"] [data-testid="stExpander"] label,
     [data-testid="stSidebar"] [data-testid="stExpander"] div {
-        color: #475569 !important;
+        color: #333333 !important;
     }
     
     [data-testid="stSidebar"] .streamlit-expanderContent strong,
     [data-testid="stSidebar"] [data-testid="stExpander"] strong {
-        color: #6366f1 !important;
+        color: #000000 !important;
     }
     
     /* 侧边栏输入框样式 */
@@ -1992,25 +2007,25 @@ with st.sidebar:
     [data-testid="stSidebar"] .stTextInput input,
     [data-testid="stSidebar"] input[type="text"],
     [data-testid="stSidebar"] [data-baseweb="input"] input {
-        background: white !important;
-        background-color: white !important;
-        border: 1px solid #e2e8f0 !important;
-        color: #1e293b !important;
-        border-radius: 8px !important;
-        -webkit-text-fill-color: #1e293b !important;
-        caret-color: #6366f1 !important;
+        background: #f5f5f5 !important;
+        background-color: #f5f5f5 !important;
+        border: 1px solid #e5e5e5 !important;
+        color: #000000 !important;
+        border-radius: 6px !important;
+        -webkit-text-fill-color: #000000 !important;
+        caret-color: #000000 !important;
     }
     
     [data-testid="stSidebar"] .stTextInput > div > div > input::placeholder,
     [data-testid="stSidebar"] input::placeholder {
-        color: #94a3b8 !important;
-        -webkit-text-fill-color: #94a3b8 !important;
+        color: #999999 !important;
+        -webkit-text-fill-color: #999999 !important;
     }
     
     [data-testid="stSidebar"] .stTextInput > div > div > input:focus,
     [data-testid="stSidebar"] input:focus {
-        border-color: #6366f1 !important;
-        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
+        border-color: #333333 !important;
+        box-shadow: none !important;
     }
     
     /* 侧边栏 text_area 样式 */
@@ -2115,59 +2130,68 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    # Survey Insights 模块
-    st.markdown('<div class="nav-section-title">ANALYSIS</div>', unsafe_allow_html=True)
+    # Analysis 分组
+    st.markdown('<div class="nav-group-header"><span class="icon">⊕</span> Analysis</div>', unsafe_allow_html=True)
+    st.markdown('<div class="nav-submenu">', unsafe_allow_html=True)
     
-    if st.button("📋 Response List", key="nav_response_list", use_container_width=True, 
+    if st.button("Response List", key="nav_response_list", use_container_width=True, 
                  type="primary" if st.session_state.current_page == "response_list" else "secondary"):
         st.session_state.current_page = "response_list"
         st.rerun()
     
-    if st.button("🗂️ Segmentation Kanban", key="nav_kanban", use_container_width=True,
+    if st.button("Segmentation Kanban", key="nav_kanban", use_container_width=True,
                  type="primary" if st.session_state.current_page == "kanban" else "secondary"):
         st.session_state.current_page = "kanban"
         st.rerun()
     
-    if st.button("📈 Trends Dashboard", key="nav_trends", use_container_width=True,
+    if st.button("Trends Dashboard", key="nav_trends", use_container_width=True,
                  type="primary" if st.session_state.current_page == "trends" else "secondary"):
         st.session_state.current_page = "trends"
         st.rerun()
     
-    # Reporting 模块
-    st.markdown('<div class="nav-section-title">REPORTING</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
     
-    if st.button("📝 Summary Timeline", key="nav_timeline", use_container_width=True,
+    # Reporting 分组
+    st.markdown('<div class="nav-group-header"><span class="icon">💬</span> Reporting</div>', unsafe_allow_html=True)
+    st.markdown('<div class="nav-submenu">', unsafe_allow_html=True)
+    
+    if st.button("Summary Timeline", key="nav_timeline", use_container_width=True,
                  type="primary" if st.session_state.current_page == "timeline" else "secondary"):
         st.session_state.current_page = "timeline"
         st.rerun()
     
-    if st.button("👤 Respondent Gallery", key="nav_gallery", use_container_width=True,
+    if st.button("Respondent Gallery", key="nav_gallery", use_container_width=True,
                  type="primary" if st.session_state.current_page == "gallery" else "secondary"):
         st.session_state.current_page = "gallery"
         st.rerun()
     
-    # Deep Analysis 模块
-    st.markdown('<div class="nav-section-title">DEEP ANALYSIS</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
     
-    if st.button("📊 Distribution Analysis", key="nav_distribution", use_container_width=True,
+    # Deep Analysis 分组
+    st.markdown('<div class="nav-group-header"><span class="icon">📊</span> Deep Analysis</div>', unsafe_allow_html=True)
+    st.markdown('<div class="nav-submenu">', unsafe_allow_html=True)
+    
+    if st.button("Distribution Analysis", key="nav_distribution", use_container_width=True,
                  type="primary" if st.session_state.current_page == "distribution" else "secondary"):
         st.session_state.current_page = "distribution"
         st.rerun()
     
-    if st.button("🔀 Cross Analysis", key="nav_cross", use_container_width=True,
+    if st.button("Cross Analysis", key="nav_cross", use_container_width=True,
                  type="primary" if st.session_state.current_page == "cross_analysis" else "secondary"):
         st.session_state.current_page = "cross_analysis"
         st.rerun()
     
-    if st.button("🤖 AI Summary", key="nav_ai_summary", use_container_width=True,
+    if st.button("AI Summary", key="nav_ai_summary", use_container_width=True,
                  type="primary" if st.session_state.current_page == "ai_summary" else "secondary"):
         st.session_state.current_page = "ai_summary"
         st.rerun()
     
-    if st.button("📤 Export Reports", key="nav_export", use_container_width=True,
+    if st.button("Export Reports", key="nav_export", use_container_width=True,
                  type="primary" if st.session_state.current_page == "export" else "secondary"):
         st.session_state.current_page = "export"
         st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
     
     st.divider()
     
