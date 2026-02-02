@@ -1868,13 +1868,13 @@ with st.sidebar:
     
     /* 分组标题 */
     .nav-section-title {
-        font-size: 0.7rem;
+        font-size: 0.75rem;
         font-weight: 700;
-        color: #1e293b !important;
+        color: #000000 !important;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         padding: 0.75rem 0.75rem 0.5rem;
-        margin-top: 0.5rem;
+        margin-top: 0.75rem;
         margin-bottom: 0.25rem;
     }
     
