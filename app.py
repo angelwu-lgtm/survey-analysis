@@ -1951,11 +1951,11 @@ with st.sidebar:
         margin: 0.75rem 0;
     }
     
-    /* 侧边栏所有按钮默认样式 - 白色背景高对比度 */
+    /* 侧边栏所有按钮默认样式 - 透明背景白色文字（与上传区域一致） */
     [data-testid="stSidebar"] .stButton > button {
-        background: rgba(255, 255, 255, 0.95) !important;
+        background: transparent !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
-        color: #333 !important;
+        color: white !important;
         padding: 0.5rem 0.75rem !important;
         font-size: 0.85rem !important;
         font-weight: 500 !important;
@@ -1964,48 +1964,47 @@ with st.sidebar:
     }
     
     [data-testid="stSidebar"] .stButton > button:hover {
-        background: white !important;
-        color: #000 !important;
+        background: rgba(255, 255, 255, 0.15) !important;
+        color: white !important;
+        border-color: rgba(255, 255, 255, 0.5) !important;
     }
     
-    /* 导航按钮样式 - 透明背景白色文字（通过 key 前缀区分） */
-    [data-testid="stSidebar"] button[kind="secondary"]:not([data-testid*="save"]):not([data-testid*="load"]):not([data-testid*="delete"]):not([data-testid*="parse"]):not([data-testid*="clear"]) {
-        background: transparent !important;
+    /* 导航按钮样式 - 无边框 */
+    [data-testid="stSidebar"] button[kind="secondary"] {
         border: none !important;
-        color: rgba(255, 255, 255, 0.85) !important;
         text-align: left !important;
         justify-content: flex-start !important;
     }
     
-    [data-testid="stSidebar"] button[kind="secondary"]:not([data-testid*="save"]):not([data-testid*="load"]):not([data-testid*="delete"]):not([data-testid*="parse"]):not([data-testid*="clear"]):hover {
-        background: rgba(255, 255, 255, 0.15) !important;
-        color: white !important;
-    }
-    
-    /* 选中状态的导航按钮 - primary 类型 */
+    /* 选中状态的导航按钮 - primary 类型 - 半透明白色背景 */
     [data-testid="stSidebar"] .stButton > button[kind="primary"] {
-        background: rgba(255, 255, 255, 0.95) !important;
-        color: #7B4F8B !important;
+        background: rgba(255, 255, 255, 0.2) !important;
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+        color: white !important;
         font-weight: 600 !important;
         text-align: left !important;
         justify-content: flex-start !important;
     }
     
     [data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {
-        background: white !important;
-        color: #6B3F7B !important;
+        background: rgba(255, 255, 255, 0.25) !important;
+        color: white !important;
     }
     
-    /* 侧边栏 selectbox 样式 - 白色背景 */
+    /* 侧边栏 selectbox 样式 - 透明背景（与上传区域一致） */
     [data-testid="stSidebar"] .stSelectbox > div > div {
-        background: rgba(255, 255, 255, 0.95) !important;
+        background: transparent !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
         border-radius: 0.375rem !important;
-        color: #333 !important;
+        color: white !important;
     }
     
     [data-testid="stSidebar"] .stSelectbox > div > div > div {
-        color: #333 !important;
+        color: white !important;
+    }
+    
+    [data-testid="stSidebar"] .stSelectbox svg {
+        fill: white !important;
     }
     
     [data-testid="stSidebar"] .stSelectbox > div > div:hover {
@@ -2037,23 +2036,27 @@ with st.sidebar:
         color: #FFD700 !important;
     }
     
-    /* 侧边栏输入框样式 - 更高对比度 */
+    /* 侧边栏输入框样式 - 透明背景（与上传区域一致） */
     [data-testid="stSidebar"] .stTextInput > div > div > input {
-        background: rgba(255, 255, 255, 0.95) !important;
+        background: transparent !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
-        color: #333 !important;
+        color: white !important;
         border-radius: 0.375rem !important;
     }
     
     [data-testid="stSidebar"] .stTextInput > div > div > input::placeholder {
-        color: #999 !important;
+        color: rgba(255, 255, 255, 0.5) !important;
     }
     
-    /* 侧边栏 text_area 样式 */
+    /* 侧边栏 text_area 样式 - 透明背景 */
     [data-testid="stSidebar"] .stTextArea textarea {
-        background: rgba(255, 255, 255, 0.95) !important;
-        color: #333 !important;
+        background: transparent !important;
+        color: white !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    }
+    
+    [data-testid="stSidebar"] .stTextArea textarea::placeholder {
+        color: rgba(255, 255, 255, 0.5) !important;
     }
     
     /* 侧边栏 caption 样式 */
@@ -2103,10 +2106,10 @@ with st.sidebar:
         font-weight: 600 !important;
     }
     
-    /* 侧边栏 number_input 样式 */
+    /* 侧边栏 number_input 样式 - 透明背景 */
     [data-testid="stSidebar"] .stNumberInput > div > div > input {
-        background: rgba(255, 255, 255, 0.95) !important;
-        color: #333 !important;
+        background: transparent !important;
+        color: white !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
     }
     
