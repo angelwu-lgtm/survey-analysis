@@ -5401,6 +5401,13 @@ if uploaded_file or has_saved_data or has_url_data:
                         name_col = col
                         break
                 
+                # HTML 转义函数
+                import html
+                def escape_html(text):
+                    if pd.isna(text):
+                        return ""
+                    return html.escape(str(text))
+                
                 # 渐变色列表
                 gradient_colors = [
                     "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
@@ -5409,12 +5416,18 @@ if uploaded_file or has_saved_data or has_url_data:
                     "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)"
                 ]
                 
-                # 构建所有卡片的 HTML
-                cards_html = '<div class="gallery-grid">'
+                # 使用 st.columns 显示卡片
+                cols = st.columns(3)
                 
                 for idx, (_, row) in enumerate(page_df.iterrows()):
+                    col_idx = idx % 3
                     gradient = gradient_colors[idx % 4]
-                    display_name = str(row[name_col]) if name_col and pd.notna(row.get(name_col)) else f"Respondent {start_idx + idx + 1}"
+                    
+                    # 获取显示名称
+                    if name_col and pd.notna(row.get(name_col)):
+                        display_name = escape_html(str(row[name_col])[:30])
+                    else:
+                        display_name = f"Respondent {start_idx + idx + 1}"
                     
                     # 性别标签
                     gender_tag = ""
@@ -5425,39 +5438,36 @@ if uploaded_file or has_saved_data or has_url_data:
                         elif 'male' in gender_val.lower() or '男' in gender_val:
                             gender_tag = '<span class="gallery-tag tag-male">Male</span>'
                         else:
-                            gender_tag = f'<span class="gallery-tag tag-other">{gender_val}</span>'
+                            gender_tag = f'<span class="gallery-tag tag-other">{escape_html(gender_val)}</span>'
                     
                     # 构建字段 HTML
                     fields_html = ""
                     shown_cols = [c for c in df.columns if c not in [name_col, gender_col]][:4]
                     for col in shown_cols:
                         if pd.notna(row.get(col)):
-                            val = str(row[col])[:35]
+                            col_escaped = escape_html(str(col))
+                            val_escaped = escape_html(str(row[col])[:35])
                             fields_html += f'''
                             <div class="gallery-field">
-                                <span class="gallery-field-label">{col}</span>
-                                <span class="gallery-field-value">{val}</span>
+                                <span class="gallery-field-label">{col_escaped}</span>
+                                <span class="gallery-field-value">{val_escaped}</span>
                             </div>
                             '''
                     
-                    # 单个卡片
-                    cards_html += f'''
-                    <div class="gallery-card">
-                        <div class="gallery-image" style="background: {gradient};">
-                            <span style="font-size: 3rem;">👤</span>
+                    # 在对应列中显示卡片
+                    with cols[col_idx]:
+                        st.markdown(f'''
+                        <div class="gallery-card">
+                            <div class="gallery-image" style="background: {gradient};">
+                                <span style="font-size: 3rem;">👤</span>
+                            </div>
+                            <div class="gallery-content">
+                                <div class="gallery-name">{display_name}</div>
+                                {gender_tag}
+                                {fields_html}
+                            </div>
                         </div>
-                        <div class="gallery-content">
-                            <div class="gallery-name">{display_name}</div>
-                            {gender_tag}
-                            {fields_html}
-                        </div>
-                    </div>
-                    '''
-                
-                cards_html += '</div>'
-                
-                # 一次性渲染所有卡片
-                st.markdown(cards_html, unsafe_allow_html=True)
+                        ''', unsafe_allow_html=True)
                 
                 st.caption(f"显示 {start_idx + 1}-{min(end_idx, len(display_df))} / 共 {len(display_df)} 条记录")
 
