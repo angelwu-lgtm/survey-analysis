@@ -1951,30 +1951,44 @@ with st.sidebar:
         margin: 0.75rem 0;
     }
     
-    /* 侧边栏按钮样式覆盖 */
+    /* 侧边栏所有按钮默认样式 - 白色背景高对比度 */
     [data-testid="stSidebar"] .stButton > button {
-        background: transparent !important;
-        border: none !important;
-        color: rgba(255, 255, 255, 0.85) !important;
-        text-align: left !important;
-        justify-content: flex-start !important;
+        background: rgba(255, 255, 255, 0.95) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        color: #333 !important;
         padding: 0.5rem 0.75rem !important;
         font-size: 0.85rem !important;
-        font-weight: 400 !important;
+        font-weight: 500 !important;
         border-radius: 0.375rem !important;
         transition: all 0.15s ease !important;
     }
     
     [data-testid="stSidebar"] .stButton > button:hover {
+        background: white !important;
+        color: #000 !important;
+    }
+    
+    /* 导航按钮样式 - 透明背景白色文字（通过 key 前缀区分） */
+    [data-testid="stSidebar"] button[kind="secondary"]:not([data-testid*="save"]):not([data-testid*="load"]):not([data-testid*="delete"]):not([data-testid*="parse"]):not([data-testid*="clear"]) {
+        background: transparent !important;
+        border: none !important;
+        color: rgba(255, 255, 255, 0.85) !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+    }
+    
+    [data-testid="stSidebar"] button[kind="secondary"]:not([data-testid*="save"]):not([data-testid*="load"]):not([data-testid*="delete"]):not([data-testid*="parse"]):not([data-testid*="clear"]):hover {
         background: rgba(255, 255, 255, 0.15) !important;
         color: white !important;
     }
     
-    /* 选中状态的按钮 - primary 类型 */
+    /* 选中状态的导航按钮 - primary 类型 */
     [data-testid="stSidebar"] .stButton > button[kind="primary"] {
         background: rgba(255, 255, 255, 0.95) !important;
         color: #7B4F8B !important;
-        font-weight: 500 !important;
+        font-weight: 600 !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
     }
     
     [data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {
@@ -1982,15 +1996,20 @@ with st.sidebar:
         color: #6B3F7B !important;
     }
     
-    /* 侧边栏 selectbox 样式 */
+    /* 侧边栏 selectbox 样式 - 白色背景 */
     [data-testid="stSidebar"] .stSelectbox > div > div {
-        background: rgba(255, 255, 255, 0.1) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        background: rgba(255, 255, 255, 0.95) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
         border-radius: 0.375rem !important;
+        color: #333 !important;
+    }
+    
+    [data-testid="stSidebar"] .stSelectbox > div > div > div {
+        color: #333 !important;
     }
     
     [data-testid="stSidebar"] .stSelectbox > div > div:hover {
-        border-color: rgba(255, 255, 255, 0.4) !important;
+        border-color: rgba(255, 255, 255, 0.5) !important;
     }
     
     /* 侧边栏 expander 样式 - 更清晰的对比度 */
@@ -2082,30 +2101,6 @@ with st.sidebar:
         margin: 1rem 0 0.5rem !important;
         padding-left: 0.5rem !important;
         font-weight: 600 !important;
-    }
-    
-    /* 侧边栏按钮样式 - 高对比度 */
-    [data-testid="stSidebar"] .stButton > button {
-        background: rgba(255, 255, 255, 0.95) !important;
-        color: #333 !important;
-        border: none !important;
-        font-weight: 500 !important;
-    }
-    
-    [data-testid="stSidebar"] .stButton > button:hover {
-        background: white !important;
-        color: #000 !important;
-    }
-    
-    /* 侧边栏 selectbox 样式 */
-    [data-testid="stSidebar"] .stSelectbox > div > div {
-        background: rgba(255, 255, 255, 0.95) !important;
-        color: #333 !important;
-        border: 1px solid rgba(255, 255, 255, 0.3) !important;
-    }
-    
-    [data-testid="stSidebar"] .stSelectbox > div > div > div {
-        color: #333 !important;
     }
     
     /* 侧边栏 number_input 样式 */
