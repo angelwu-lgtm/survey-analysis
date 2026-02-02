@@ -2083,6 +2083,47 @@ with st.sidebar:
         padding-left: 0.5rem !important;
         font-weight: 600 !important;
     }
+    
+    /* 侧边栏按钮样式 - 高对比度 */
+    [data-testid="stSidebar"] .stButton > button {
+        background: rgba(255, 255, 255, 0.95) !important;
+        color: #333 !important;
+        border: none !important;
+        font-weight: 500 !important;
+    }
+    
+    [data-testid="stSidebar"] .stButton > button:hover {
+        background: white !important;
+        color: #000 !important;
+    }
+    
+    /* 侧边栏 selectbox 样式 */
+    [data-testid="stSidebar"] .stSelectbox > div > div {
+        background: rgba(255, 255, 255, 0.95) !important;
+        color: #333 !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    }
+    
+    [data-testid="stSidebar"] .stSelectbox > div > div > div {
+        color: #333 !important;
+    }
+    
+    /* 侧边栏 number_input 样式 */
+    [data-testid="stSidebar"] .stNumberInput > div > div > input {
+        background: rgba(255, 255, 255, 0.95) !important;
+        color: #333 !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    }
+    
+    /* 侧边栏链接按钮样式 */
+    [data-testid="stSidebar"] a {
+        color: #FFD700 !important;
+    }
+    
+    /* 侧边栏分隔线 */
+    [data-testid="stSidebar"] hr {
+        border-color: rgba(255, 255, 255, 0.2) !important;
+    }
     </style>
     """, unsafe_allow_html=True)
     
