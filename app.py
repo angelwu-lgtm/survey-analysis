@@ -1993,53 +1993,95 @@ with st.sidebar:
         border-color: rgba(255, 255, 255, 0.4) !important;
     }
     
-    /* 侧边栏 expander 样式 */
+    /* 侧边栏 expander 样式 - 更清晰的对比度 */
     [data-testid="stSidebar"] .streamlit-expanderHeader {
-        background: rgba(255, 255, 255, 0.1) !important;
+        background: rgba(255, 255, 255, 0.15) !important;
         border-radius: 0.375rem !important;
-        color: rgba(255, 255, 255, 0.9) !important;
+        color: white !important;
+        font-weight: 500 !important;
     }
     
     [data-testid="stSidebar"] .streamlit-expanderContent {
-        background: rgba(255, 255, 255, 0.05) !important;
+        background: rgba(255, 255, 255, 0.1) !important;
         border-radius: 0 0 0.375rem 0.375rem !important;
+        padding: 0.75rem !important;
     }
     
-    /* 侧边栏输入框样式 */
-    [data-testid="stSidebar"] .stTextInput > div > div > input {
-        background: rgba(255, 255, 255, 0.1) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    /* 侧边栏 expander 内的文字 */
+    [data-testid="stSidebar"] .streamlit-expanderContent p,
+    [data-testid="stSidebar"] .streamlit-expanderContent span,
+    [data-testid="stSidebar"] .streamlit-expanderContent label {
         color: white !important;
+    }
+    
+    [data-testid="stSidebar"] .streamlit-expanderContent strong {
+        color: #FFD700 !important;
+    }
+    
+    /* 侧边栏输入框样式 - 更高对比度 */
+    [data-testid="stSidebar"] .stTextInput > div > div > input {
+        background: rgba(255, 255, 255, 0.95) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        color: #333 !important;
         border-radius: 0.375rem !important;
     }
     
     [data-testid="stSidebar"] .stTextInput > div > div > input::placeholder {
-        color: rgba(255, 255, 255, 0.5) !important;
+        color: #999 !important;
+    }
+    
+    /* 侧边栏 text_area 样式 */
+    [data-testid="stSidebar"] .stTextArea textarea {
+        background: rgba(255, 255, 255, 0.95) !important;
+        color: #333 !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
     }
     
     /* 侧边栏 caption 样式 */
     [data-testid="stSidebar"] .stCaption {
-        color: rgba(255, 255, 255, 0.6) !important;
+        color: rgba(255, 255, 255, 0.8) !important;
+    }
+    
+    /* 侧边栏 markdown 文字 */
+    [data-testid="stSidebar"] .stMarkdown p {
+        color: white !important;
     }
     
     /* 上传成功提示 */
     [data-testid="stSidebar"] .upload-success {
-        background: rgba(255, 255, 255, 0.15) !important;
-        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        background: rgba(144, 238, 144, 0.2) !important;
+        border: 1px solid rgba(144, 238, 144, 0.5) !important;
     }
     
     [data-testid="stSidebar"] .upload-success-text {
         color: #90EE90 !important;
     }
     
+    /* 文件上传组件样式 */
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] {
+        background: rgba(255, 255, 255, 0.1) !important;
+        border-radius: 0.5rem !important;
+        padding: 0.5rem !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] section {
+        background: transparent !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] button {
+        background: rgba(255, 255, 255, 0.9) !important;
+        color: #333 !important;
+    }
+    
     /* 侧边栏标题样式 */
     .sidebar-section-title {
-        color: rgba(255, 255, 255, 0.7) !important;
-        font-size: 0.7rem !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+        font-size: 0.75rem !important;
         text-transform: uppercase !important;
         letter-spacing: 1px !important;
         margin: 1rem 0 0.5rem !important;
         padding-left: 0.5rem !important;
+        font-weight: 600 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -4661,21 +4703,105 @@ if uploaded_file or has_saved_data or has_url_data:
                     'Unknown': 'partial'
                 }
                 
-                # 显示筛选器
-                filter_col1, filter_col2, filter_col3 = st.columns([2, 2, 2])
+                # Airtable 风格筛选器
+                st.markdown("""
+                <style>
+                .filter-container {
+                    display: flex;
+                    gap: 0.5rem;
+                    margin-bottom: 1.5rem;
+                    flex-wrap: wrap;
+                }
+                .filter-btn {
+                    padding: 0.5rem 1rem;
+                    border: 1px solid #e4e4e7;
+                    border-radius: 6px;
+                    background: white;
+                    font-size: 0.85rem;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .filter-btn:hover {
+                    border-color: #a1a1aa;
+                }
+                </style>
+                """, unsafe_allow_html=True)
+                
+                # 显示独立的状态筛选器（类似 Airtable）
+                st.markdown("##### 筛选条件")
+                filter_col1, filter_col2, filter_col3 = st.columns(3)
+                
                 with filter_col1:
-                    selected_statuses = st.multiselect(
-                        "筛选状态",
-                        options=list(status_values),
-                        default=list(status_values),
-                        key="kanban_status_filter"
+                    status_filter = st.selectbox(
+                        "Status",
+                        options=["全部"] + list(status_values),
+                        key="kanban_status_filter_single"
                     )
+                
+                # 检测设备类型列
+                device_col = None
+                for col in df.columns:
+                    col_lower = str(col).lower()
+                    if any(kw in col_lower for kw in ['device', '设备', 'platform']):
+                        device_col = col
+                        break
+                
+                with filter_col2:
+                    if device_col:
+                        device_options = ["全部"] + list(df_kanban[device_col].dropna().unique())
+                        device_filter = st.selectbox(
+                            "Device Type",
+                            options=device_options,
+                            key="kanban_device_filter"
+                        )
+                    else:
+                        device_filter = "全部"
+                        st.selectbox("Device Type", options=["全部"], disabled=True, key="kanban_device_disabled")
+                
+                # 检测调研标题列
+                survey_col = None
+                for col in df.columns:
+                    col_lower = str(col).lower()
+                    if any(kw in col_lower for kw in ['survey', 'title', '调研', '标题']):
+                        survey_col = col
+                        break
+                
+                with filter_col3:
+                    if survey_col:
+                        survey_options = ["全部"] + list(df_kanban[survey_col].dropna().unique())
+                        survey_filter = st.selectbox(
+                            "Survey",
+                            options=survey_options,
+                            key="kanban_survey_filter"
+                        )
+                    else:
+                        survey_filter = "全部"
+                        st.selectbox("Survey", options=["全部"], disabled=True, key="kanban_survey_disabled")
+                
+                # 应用筛选
+                filtered_df = df_kanban.copy()
+                if status_filter != "全部":
+                    filtered_df = filtered_df[filtered_df[status_col] == status_filter]
+                if device_col and device_filter != "全部":
+                    filtered_df = filtered_df[filtered_df[device_col] == device_filter]
+                if survey_col and survey_filter != "全部":
+                    filtered_df = filtered_df[filtered_df[survey_col] == survey_filter]
+                
+                # 获取筛选后的状态值
+                if status_filter != "全部":
+                    selected_statuses = [status_filter]
+                else:
+                    selected_statuses = list(filtered_df[status_col].dropna().unique())
+                
+                st.markdown("---")
                 
                 # 创建看板列
                 kanban_cols = st.columns(len(selected_statuses) if selected_statuses else 1)
                 
                 for idx, status in enumerate(selected_statuses):
-                    status_df = df_kanban[df_kanban[status_col] == status]
+                    status_df = filtered_df[filtered_df[status_col] == status]
                     color_class = status_colors.get(str(status), 'partial')
                     
                     with kanban_cols[idx]:
@@ -4688,23 +4814,25 @@ if uploaded_file or has_saved_data or has_url_data:
                         """, unsafe_allow_html=True)
                         
                         # 卡片
-                        for _, row in status_df.head(10).iterrows():
+                        for row_idx, (_, row) in enumerate(status_df.head(10).iterrows()):
                             # 获取显示字段
                             card_title = str(row.iloc[0]) if len(row) > 0 else "Record"
                             
-                            # 构建卡片内容
-                            card_fields = []
-                            for col_name in df.columns[:5]:
-                                if col_name != status_col and pd.notna(row.get(col_name)):
-                                    val = str(row[col_name])[:50]
-                                    card_fields.append(f'<div class="kanban-card-field">{col_name}</div><div class="kanban-card-value">{val}</div>')
+                            # 构建卡片内容 - 使用更清晰的格式
+                            card_html = f'<div class="kanban-card"><div class="kanban-card-title">{card_title[:40]}</div>'
                             
-                            st.markdown(f"""
-                            <div class="kanban-card">
-                                <div class="kanban-card-title">{card_title[:40]}...</div>
-                                {''.join(card_fields[:3])}
-                            </div>
-                            """, unsafe_allow_html=True)
+                            # 显示前4个字段
+                            field_count = 0
+                            for col_name in df.columns:
+                                if col_name != status_col and col_name not in ['_completeness', '_status'] and pd.notna(row.get(col_name)):
+                                    val = str(row[col_name])[:40]
+                                    card_html += f'<div style="margin-bottom: 0.5rem;"><div class="kanban-card-field">{col_name}</div><div class="kanban-card-value">{val}</div></div>'
+                                    field_count += 1
+                                    if field_count >= 4:
+                                        break
+                            
+                            card_html += '</div>'
+                            st.markdown(card_html, unsafe_allow_html=True)
                         
                         if len(status_df) > 10:
                             st.caption(f"... 还有 {len(status_df) - 10} 条记录")
@@ -5179,30 +5307,47 @@ if uploaded_file or has_saved_data or has_url_data:
                         else:
                             gender_tag = f'<span class="gallery-tag tag-other">{row[gender_col]}</span>'
                     
-                    # 构建字段列表
-                    fields_html = ""
-                    shown_cols = [c for c in df.columns if c not in [name_col, gender_col]][:4]
-                    for col in shown_cols:
-                        if pd.notna(row.get(col)):
-                            val = str(row[col])[:30]
-                            fields_html += f'''
-                            <div class="gallery-field">
-                                <span class="gallery-field-label">{col}</span>
-                                <span class="gallery-field-value">{val}</span>
-                            </div>
-                            '''
-                    
+                    # 构建字段列表 - 使用 Streamlit 原生组件
                     with cols[col_idx]:
-                        st.markdown(f"""
-                        <div class="gallery-card">
-                            <div class="gallery-image {color_class}">👤</div>
-                            <div class="gallery-content">
-                                <div class="gallery-name">{display_name}</div>
-                                {gender_tag}
-                                {fields_html}
+                        # 使用 container 创建卡片效果
+                        with st.container():
+                            # 渐变色头部
+                            gradient_colors = [
+                                "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+                                "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+                                "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)"
+                            ]
+                            gradient = gradient_colors[idx % 4]
+                            
+                            st.markdown(f"""
+                            <div style="background: {gradient}; height: 120px; border-radius: 12px 12px 0 0; display: flex; align-items: center; justify-content: center; margin: -1rem -1rem 0 -1rem;">
+                                <span style="font-size: 3rem;">👤</span>
                             </div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                            """, unsafe_allow_html=True)
+                            
+                            # 姓名
+                            st.markdown(f"**{display_name}**")
+                            
+                            # 性别标签
+                            if gender_col and pd.notna(row.get(gender_col)):
+                                gender_val = str(row[gender_col])
+                                if 'female' in gender_val.lower() or '女' in gender_val:
+                                    st.markdown(f'<span style="background: #fce4ec; color: #c2185b; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem;">Female</span>', unsafe_allow_html=True)
+                                elif 'male' in gender_val.lower() or '男' in gender_val:
+                                    st.markdown(f'<span style="background: #e3f2fd; color: #1565c0; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem;">Male</span>', unsafe_allow_html=True)
+                                else:
+                                    st.markdown(f'<span style="background: #f3e5f5; color: #7b1fa2; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem;">{gender_val}</span>', unsafe_allow_html=True)
+                            
+                            # 显示字段
+                            shown_cols = [c for c in df.columns if c not in [name_col, gender_col]][:4]
+                            for col in shown_cols:
+                                if pd.notna(row.get(col)):
+                                    val = str(row[col])[:30]
+                                    st.caption(f"**{col}**")
+                                    st.write(val)
+                            
+                            st.markdown("---")
                 
                 st.caption(f"显示 {start_idx + 1}-{min(end_idx, len(display_df))} / 共 {len(display_df)} 条记录")
 
