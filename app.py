@@ -2011,16 +2011,44 @@ with st.sidebar:
         border-color: rgba(255, 255, 255, 0.5) !important;
     }
     
-    /* 侧边栏 expander 样式 - 更清晰的对比度 */
+    /* 侧边栏 expander 样式 - 透明背景（与上传区域一致） */
+    [data-testid="stSidebar"] [data-testid="stExpander"] {
+        background: transparent !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        border-radius: 0.375rem !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stExpander"] > details {
+        background: transparent !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stExpander"] > details > summary {
+        background: transparent !important;
+        color: white !important;
+        font-weight: 500 !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stExpander"] > details > summary > span,
+    [data-testid="stSidebar"] [data-testid="stExpander"] > details > summary > span > span,
+    [data-testid="stSidebar"] [data-testid="stExpander"] > details > summary p {
+        color: white !important;
+    }
+    
+    /* expander 箭头图标 */
+    [data-testid="stSidebar"] [data-testid="stExpander"] svg {
+        fill: white !important;
+        stroke: white !important;
+    }
+    
     [data-testid="stSidebar"] .streamlit-expanderHeader {
-        background: rgba(255, 255, 255, 0.15) !important;
+        background: transparent !important;
         border-radius: 0.375rem !important;
         color: white !important;
         font-weight: 500 !important;
     }
     
     [data-testid="stSidebar"] .streamlit-expanderContent {
-        background: rgba(255, 255, 255, 0.1) !important;
+        background: transparent !important;
         border-radius: 0 0 0.375rem 0.375rem !important;
         padding: 0.75rem !important;
     }
@@ -2032,21 +2060,14 @@ with st.sidebar:
     [data-testid="stSidebar"] .streamlit-expanderContent div,
     [data-testid="stSidebar"] [data-testid="stExpander"] p,
     [data-testid="stSidebar"] [data-testid="stExpander"] span,
-    [data-testid="stSidebar"] [data-testid="stExpander"] label {
+    [data-testid="stSidebar"] [data-testid="stExpander"] label,
+    [data-testid="stSidebar"] [data-testid="stExpander"] div {
         color: white !important;
     }
     
     [data-testid="stSidebar"] .streamlit-expanderContent strong,
     [data-testid="stSidebar"] [data-testid="stExpander"] strong {
         color: #FFD700 !important;
-    }
-    
-    /* expander 标题文字 */
-    [data-testid="stSidebar"] [data-testid="stExpander"] summary,
-    [data-testid="stSidebar"] [data-testid="stExpander"] summary span,
-    [data-testid="stSidebar"] [data-testid="stExpander"] summary p {
-        color: white !important;
-        font-weight: 500 !important;
     }
     
     /* expander 内的 markdown 文字 */
