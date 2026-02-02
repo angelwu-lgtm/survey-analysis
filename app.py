@@ -1870,11 +1870,11 @@ with st.sidebar:
     .nav-section-title {
         font-size: 0.7rem;
         font-weight: 600;
-        color: #94a3b8 !important;
+        color: #64748b !important;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        padding: 0.5rem 0.75rem;
-        margin-top: 1rem;
+        padding: 0.75rem 0.75rem 0.5rem;
+        margin-top: 0.5rem;
         margin-bottom: 0.25rem;
     }
     
@@ -1897,17 +1897,18 @@ with st.sidebar:
         color: #475569 !important;
     }
     
-    /* 选中状态的导航按钮 - 紫色背景 */
+    /* 选中状态的导航按钮 - 深蓝色背景，高对比度 */
     [data-testid="stSidebar"] .stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%) !important;
-        color: white !important;
+        background: #4f46e5 !important;
+        color: #ffffff !important;
         font-weight: 600 !important;
-        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3) !important;
+        box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25) !important;
+        border: none !important;
     }
     
     [data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
-        color: white !important;
+        background: #4338ca !important;
+        color: #ffffff !important;
     }
     
     /* 侧边栏 selectbox 样式 */
