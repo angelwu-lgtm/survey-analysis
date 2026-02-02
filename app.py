@@ -5401,73 +5401,58 @@ if uploaded_file or has_saved_data or has_url_data:
                         name_col = col
                         break
                 
-                # HTML 转义函数
-                import html
-                def escape_html(text):
-                    if pd.isna(text):
-                        return ""
-                    return html.escape(str(text))
-                
                 # 渐变色列表
                 gradient_colors = [
-                    "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                    "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-                    "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-                    "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)"
+                    "#667eea, #764ba2",
+                    "#f093fb, #f5576c",
+                    "#4facfe, #00f2fe",
+                    "#11998e, #38ef7d"
                 ]
                 
-                # 使用 st.columns 显示卡片
-                cols = st.columns(3)
-                
-                for idx, (_, row) in enumerate(page_df.iterrows()):
-                    col_idx = idx % 3
-                    gradient = gradient_colors[idx % 4]
+                # 每行显示3个卡片
+                for row_start in range(0, len(page_df), 3):
+                    cols = st.columns(3, gap="medium")
+                    row_data = page_df.iloc[row_start:row_start + 3]
                     
-                    # 获取显示名称
-                    if name_col and pd.notna(row.get(name_col)):
-                        display_name = escape_html(str(row[name_col])[:30])
-                    else:
-                        display_name = f"Respondent {start_idx + idx + 1}"
-                    
-                    # 性别标签
-                    gender_tag = ""
-                    if gender_col and pd.notna(row.get(gender_col)):
-                        gender_val = str(row[gender_col])
-                        if 'female' in gender_val.lower() or '女' in gender_val:
-                            gender_tag = '<span class="gallery-tag tag-female">Female</span>'
-                        elif 'male' in gender_val.lower() or '男' in gender_val:
-                            gender_tag = '<span class="gallery-tag tag-male">Male</span>'
+                    for col_idx, (_, row) in enumerate(row_data.iterrows()):
+                        gradient = gradient_colors[(row_start + col_idx) % 4]
+                        
+                        # 获取显示名称
+                        if name_col and pd.notna(row.get(name_col)):
+                            display_name = str(row[name_col])[:30]
                         else:
-                            gender_tag = f'<span class="gallery-tag tag-other">{escape_html(gender_val)}</span>'
-                    
-                    # 构建字段 HTML
-                    fields_html = ""
-                    shown_cols = [c for c in df.columns if c not in [name_col, gender_col]][:4]
-                    for col in shown_cols:
-                        if pd.notna(row.get(col)):
-                            col_escaped = escape_html(str(col))
-                            val_escaped = escape_html(str(row[col])[:35])
-                            fields_html += f'''
-                            <div class="gallery-field">
-                                <span class="gallery-field-label">{col_escaped}</span>
-                                <span class="gallery-field-value">{val_escaped}</span>
-                            </div>
-                            '''
-                    
-                    # 在对应列中显示卡片
-                    with cols[col_idx]:
-                        st.markdown(f'''
-                        <div class="gallery-card">
-                            <div class="gallery-image" style="background: {gradient};">
-                                <span style="font-size: 3rem;">👤</span>
-                            </div>
-                            <div class="gallery-content">
-                                <div class="gallery-name">{display_name}</div>
-                                {gender_tag}
-                                {fields_html}
-                            </div>
-                        </div>
-                        ''', unsafe_allow_html=True)
+                            display_name = f"Respondent {start_idx + row_start + col_idx + 1}"
+                        
+                        with cols[col_idx]:
+                            # 使用容器包裹整个卡片
+                            with st.container(border=True):
+                                # 渐变色头部
+                                st.markdown(f'''
+                                <div style="background: linear-gradient(135deg, {gradient}); 
+                                            height: 100px; 
+                                            margin: -1rem -1rem 1rem -1rem; 
+                                            border-radius: 0.5rem 0.5rem 0 0;
+                                            display: flex; 
+                                            align-items: center; 
+                                            justify-content: center;">
+                                    <span style="font-size: 2.5rem;">👤</span>
+                                </div>
+                                ''', unsafe_allow_html=True)
+                                
+                                # 姓名
+                                st.markdown(f"**{display_name}**")
+                                
+                                # 性别标签
+                                if gender_col and pd.notna(row.get(gender_col)):
+                                    gender_val = str(row[gender_col])
+                                    st.caption(f"🏷️ {gender_val}")
+                                
+                                # 显示字段（最多4个）
+                                shown_cols = [c for c in df.columns if c not in [name_col, gender_col]][:4]
+                                for field_col in shown_cols:
+                                    if pd.notna(row.get(field_col)):
+                                        val = str(row[field_col])[:40]
+                                        st.markdown(f"<small style='color: #6c757d;'>{field_col}</small><br/><span style='font-size: 0.9rem;'>{val}</span>", unsafe_allow_html=True)
                 
                 st.caption(f"显示 {start_idx + 1}-{min(end_idx, len(display_df))} / 共 {len(display_df)} 条记录")
 
