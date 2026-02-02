@@ -1913,17 +1913,17 @@ with st.sidebar:
         color: #000000 !important;
     }
     
-    /* 选中状态的导航按钮 - 深灰/黑色背景 */
+    /* 选中状态的导航按钮 - 浅灰背景黑色文字 */
     [data-testid="stSidebar"] .stButton > button[kind="primary"] {
-        background: #404040 !important;
-        color: #ffffff !important;
-        font-weight: 500 !important;
-        border: none !important;
+        background: #f0f0f0 !important;
+        color: #000000 !important;
+        font-weight: 600 !important;
+        border: 1px solid #e0e0e0 !important;
     }
     
     [data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {
-        background: #333333 !important;
-        color: #ffffff !important;
+        background: #e8e8e8 !important;
+        color: #000000 !important;
     }
     
     /* 侧边栏 selectbox 样式 */
