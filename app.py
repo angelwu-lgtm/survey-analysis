@@ -230,43 +230,8 @@ st.markdown("""
         margin-bottom: 0.375rem !important;
     }
     
-    /* 侧边栏头部 */
-    .sidebar-header {
-        display: flex;
-        align-items: center;
-        gap: 0.625rem;
-        padding: 0.375rem 0 1rem;
-        margin-bottom: 1rem;
-        border-bottom: 1px solid var(--border);
-    }
-    
-    .sidebar-logo {
-        width: 32px;
-        height: 36px;
-        background: var(--brand);
-        border-radius: var(--radius);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 1rem;
-        font-weight: 700;
-    }
-    
-    .sidebar-title {
-        font-size: 1rem;
-        font-weight: 600;
-        color: var(--foreground);
-        letter-spacing: -0.025em;
-    }
-    
-    .sidebar-subtitle {
-        font-size: 0.75rem;
-        color: var(--muted-foreground);
-    }
-    
-    /* 侧边栏分组标题 */
-    .sidebar-section-title {
+    /* 侧边栏分组标题 - 旧版（保留兼容） */
+    .sidebar-section-title-old {
         font-size: 0.75rem;
         font-weight: 500;
         color: var(--muted-foreground);
