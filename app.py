@@ -1869,8 +1869,8 @@ with st.sidebar:
     /* 分组标题 */
     .nav-section-title {
         font-size: 0.7rem;
-        font-weight: 600;
-        color: #64748b !important;
+        font-weight: 700;
+        color: #1e293b !important;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         padding: 0.75rem 0.75rem 0.5rem;
