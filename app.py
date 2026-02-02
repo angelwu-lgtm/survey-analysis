@@ -14,6 +14,14 @@ import json
 import requests
 import base64
 from datetime import datetime
+import os
+import pickle
+from pathlib import Path
+
+# 数据保存目录 - 使用脚本所在目录
+SCRIPT_DIR = Path(__file__).parent if '__file__' in dir() else Path('.')
+SAVE_DIR = SCRIPT_DIR / "saved_surveys"
+SAVE_DIR.mkdir(exist_ok=True)
 
 # 导出相关库
 try:
@@ -1589,13 +1597,15 @@ def generate_all_export_sections(df, selected_columns):
 
 # --- 侧边栏 - 专业 SaaS 风格 ---
 with st.sidebar:
-    # Logo 和品牌标题
+    # Logo 和品牌标题 - Airtable 风格
     st.markdown("""
-    <div class="sidebar-header">
-        <div class="sidebar-logo">📊</div>
+    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0 1.25rem; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.15);">
+        <div style="width: 36px; height: 36px; background: rgba(255,255,255,0.95); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+            📊
+        </div>
         <div>
-            <div class="sidebar-title">Ptengine Survey</div>
-            <div class="sidebar-subtitle">调研数据洞察平台</div>
+            <div style="font-size: 1rem; font-weight: 600; color: white; letter-spacing: -0.025em;">Survey Insights</div>
+            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.7);">调研数据洞察平台</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1619,6 +1629,149 @@ with st.sidebar:
             </div>
         </div>
         """, unsafe_allow_html=True)
+    
+    # ========== 数据保存/加载功能 ==========
+    with st.expander("💾 保存/加载数据", expanded=False):
+        st.caption("保存当前数据，下次无需重新上传")
+        
+        # 获取已保存的文件列表
+        saved_files = list(SAVE_DIR.glob("*.pkl"))
+        saved_names = [f.stem for f in saved_files]
+        
+        # 保存当前数据
+        st.markdown("**保存当前数据**")
+        save_name = st.text_input(
+            "保存名称",
+            placeholder="例如：用户满意度调研_2024Q1",
+            key="save_name_input",
+            label_visibility="collapsed"
+        )
+        
+        if st.button("💾 保存数据", key="save_data_btn", use_container_width=True):
+            # 检查是否有数据可保存
+            has_data = False
+            save_data = {}
+            
+            # 检查上传的文件数据
+            if uploaded_file:
+                file_type = uploaded_file.name.split('.')[-1].lower()
+                if file_type in ['csv', 'xlsx']:
+                    uploaded_file.seek(0)
+                    if file_type == 'csv':
+                        df_to_save = pd.read_csv(uploaded_file)
+                    else:
+                        df_to_save = pd.read_excel(uploaded_file)
+                    save_data['df'] = df_to_save
+                    save_data['source'] = 'file'
+                    save_data['filename'] = uploaded_file.name
+                    has_data = True
+            
+            # 检查 URL 获取的数据
+            if 'url_df' in st.session_state and st.session_state['url_df'] is not None:
+                save_data['df'] = st.session_state['url_df']
+                save_data['source'] = 'url'
+                has_data = True
+            
+            # 保存问题映射
+            if st.session_state.get('question_map'):
+                save_data['question_map'] = st.session_state['question_map']
+            
+            if has_data and save_name:
+                save_data['saved_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                save_path = SAVE_DIR / f"{save_name}.pkl"
+                
+                try:
+                    with open(save_path, 'wb') as f:
+                        pickle.dump(save_data, f)
+                    st.success(f"✅ 数据已保存为: {save_name}")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ 保存失败: {e}")
+            elif not save_name:
+                st.warning("⚠️ 请输入保存名称")
+            else:
+                st.warning("⚠️ 没有可保存的数据，请先上传文件或获取数据")
+        
+        st.markdown("---")
+        
+        # 加载已保存的数据
+        st.markdown("**加载已保存数据**")
+        
+        if saved_names:
+            # 显示已保存的数据列表
+            selected_save = st.selectbox(
+                "选择数据",
+                options=saved_names,
+                key="load_data_select",
+                label_visibility="collapsed"
+            )
+            
+            # 显示保存信息
+            if selected_save:
+                save_path = SAVE_DIR / f"{selected_save}.pkl"
+                try:
+                    with open(save_path, 'rb') as f:
+                        preview_data = pickle.load(f)
+                    
+                    saved_at = preview_data.get('saved_at', '未知')
+                    source = preview_data.get('source', '未知')
+                    row_count = len(preview_data.get('df', pd.DataFrame()))
+                    
+                    st.caption(f"📅 保存时间: {saved_at}")
+                    st.caption(f"📊 数据量: {row_count} 条")
+                except:
+                    pass
+            
+            col_load, col_delete = st.columns([2, 1])
+            
+            with col_load:
+                if st.button("📂 加载数据", key="load_data_btn", use_container_width=True):
+                    save_path = SAVE_DIR / f"{selected_save}.pkl"
+                    try:
+                        with open(save_path, 'rb') as f:
+                            loaded_data = pickle.load(f)
+                        
+                        # 加载数据到 session_state
+                        if 'df' in loaded_data:
+                            st.session_state['saved_df'] = loaded_data['df']
+                            st.session_state['saved_df_name'] = selected_save
+                        
+                        if 'question_map' in loaded_data:
+                            st.session_state['question_map'] = loaded_data['question_map']
+                        
+                        st.success(f"✅ 已加载: {selected_save}")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ 加载失败: {e}")
+            
+            with col_delete:
+                if st.button("🗑️", key="delete_data_btn", help="删除此保存"):
+                    save_path = SAVE_DIR / f"{selected_save}.pkl"
+                    try:
+                        os.remove(save_path)
+                        st.success("已删除")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"删除失败: {e}")
+        else:
+            st.info("💡 暂无已保存的数据")
+        
+        # 显示当前加载状态
+        if 'saved_df' in st.session_state and st.session_state.get('saved_df') is not None:
+            st.markdown("---")
+            st.markdown(f"""
+            <div style="background: rgba(255,255,255,0.1); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7);">当前已加载</div>
+                <div style="font-size: 0.9rem; font-weight: 600; color: white;">📊 {st.session_state.get('saved_df_name', '未命名')}</div>
+                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">{len(st.session_state['saved_df'])} 条数据</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if st.button("❌ 清除已加载数据", key="clear_saved_df", use_container_width=True):
+                del st.session_state['saved_df']
+                if 'saved_df_name' in st.session_state:
+                    del st.session_state['saved_df_name']
+                st.rerun()
     
     # CSV 链接获取数据
     with st.expander("🔗 或：通过链接获取", expanded=False):
@@ -1714,6 +1867,285 @@ with st.sidebar:
                     st.caption(f"**{k}**: {v[:60]}...")
             if st.button("🗑️ 清除映射", key="clear_map"):
                 st.session_state['question_map'] = {}
+    
+    # ========== Airtable 风格多级导航 - 紫色主题 ==========
+    st.markdown("""
+    <style>
+    /* Airtable 紫色主题侧边栏 */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #8B5A9C 0%, #7B4F8B 100%) !important;
+    }
+    
+    [data-testid="stSidebar"] > div:first-child {
+        background: transparent !important;
+    }
+    
+    /* 侧边栏内所有文字默认白色 */
+    [data-testid="stSidebar"] * {
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+    
+    [data-testid="stSidebar"] label {
+        color: rgba(255, 255, 255, 0.7) !important;
+    }
+    
+    /* 导航模块样式 */
+    .nav-module {
+        margin-bottom: 0.25rem;
+    }
+    .nav-module-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 0.75rem;
+        color: rgba(255, 255, 255, 0.95) !important;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        border-radius: 0.375rem;
+        transition: all 0.15s ease;
+    }
+    .nav-module-header:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+    .nav-module-header .icon {
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+    .nav-module-header .chevron {
+        margin-left: auto;
+        font-size: 0.75rem;
+        opacity: 0.7;
+        transition: transform 0.2s ease;
+    }
+    .nav-module-header.expanded .chevron {
+        transform: rotate(90deg);
+    }
+    
+    /* 导航分组样式 */
+    .nav-group {
+        margin-left: 0.5rem;
+        padding-left: 0.75rem;
+        border-left: 2px solid rgba(255, 255, 255, 0.2);
+    }
+    .nav-group-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 0.75rem;
+        color: rgba(255, 255, 255, 0.7) !important;
+        font-size: 0.75rem;
+        font-weight: 500;
+        margin-top: 0.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .nav-group-title .icon {
+        font-size: 0.875rem;
+    }
+    
+    /* 分隔线 */
+    .nav-divider {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.15);
+        margin: 0.75rem 0;
+    }
+    
+    /* 侧边栏按钮样式覆盖 */
+    [data-testid="stSidebar"] .stButton > button {
+        background: transparent !important;
+        border: none !important;
+        color: rgba(255, 255, 255, 0.85) !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.85rem !important;
+        font-weight: 400 !important;
+        border-radius: 0.375rem !important;
+        transition: all 0.15s ease !important;
+    }
+    
+    [data-testid="stSidebar"] .stButton > button:hover {
+        background: rgba(255, 255, 255, 0.15) !important;
+        color: white !important;
+    }
+    
+    /* 选中状态的按钮 - primary 类型 */
+    [data-testid="stSidebar"] .stButton > button[kind="primary"] {
+        background: rgba(255, 255, 255, 0.95) !important;
+        color: #7B4F8B !important;
+        font-weight: 500 !important;
+    }
+    
+    [data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {
+        background: white !important;
+        color: #6B3F7B !important;
+    }
+    
+    /* 侧边栏 selectbox 样式 */
+    [data-testid="stSidebar"] .stSelectbox > div > div {
+        background: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border-radius: 0.375rem !important;
+    }
+    
+    [data-testid="stSidebar"] .stSelectbox > div > div:hover {
+        border-color: rgba(255, 255, 255, 0.4) !important;
+    }
+    
+    /* 侧边栏 expander 样式 */
+    [data-testid="stSidebar"] .streamlit-expanderHeader {
+        background: rgba(255, 255, 255, 0.1) !important;
+        border-radius: 0.375rem !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+    
+    [data-testid="stSidebar"] .streamlit-expanderContent {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border-radius: 0 0 0.375rem 0.375rem !important;
+    }
+    
+    /* 侧边栏输入框样式 */
+    [data-testid="stSidebar"] .stTextInput > div > div > input {
+        background: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        color: white !important;
+        border-radius: 0.375rem !important;
+    }
+    
+    [data-testid="stSidebar"] .stTextInput > div > div > input::placeholder {
+        color: rgba(255, 255, 255, 0.5) !important;
+    }
+    
+    /* 侧边栏 caption 样式 */
+    [data-testid="stSidebar"] .stCaption {
+        color: rgba(255, 255, 255, 0.6) !important;
+    }
+    
+    /* 上传成功提示 */
+    [data-testid="stSidebar"] .upload-success {
+        background: rgba(255, 255, 255, 0.15) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    }
+    
+    [data-testid="stSidebar"] .upload-success-text {
+        color: #90EE90 !important;
+    }
+    
+    /* 侧边栏标题样式 */
+    .sidebar-section-title {
+        color: rgba(255, 255, 255, 0.7) !important;
+        font-size: 0.7rem !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1px !important;
+        margin: 1rem 0 0.5rem !important;
+        padding-left: 0.5rem !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # 初始化导航状态
+    if 'current_page' not in st.session_state:
+        st.session_state.current_page = "response_list"
+    
+    # Survey Insights 模块
+    st.markdown("""
+    <div class="nav-module">
+        <div class="nav-module-header expanded">
+            <span class="icon">💬</span>
+            <span>Survey Insights</span>
+            <span class="chevron">›</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Analysis 分组
+    st.markdown("""
+    <div class="nav-group">
+        <div class="nav-group-title">
+            <span class="icon">⊕</span>
+            <span>Analysis</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # 导航按钮 - Analysis (匹配 Airtable 结构)
+    nav_col1 = st.container()
+    with nav_col1:
+        if st.button("📋 Response List", key="nav_response_list", use_container_width=True, 
+                     type="primary" if st.session_state.current_page == "response_list" else "secondary"):
+            st.session_state.current_page = "response_list"
+            st.rerun()
+        
+        if st.button("🗂️ Segmentation Kanban", key="nav_kanban", use_container_width=True,
+                     type="primary" if st.session_state.current_page == "kanban" else "secondary"):
+            st.session_state.current_page = "kanban"
+            st.rerun()
+        
+        if st.button("📈 Trends Dashboard", key="nav_trends", use_container_width=True,
+                     type="primary" if st.session_state.current_page == "trends" else "secondary"):
+            st.session_state.current_page = "trends"
+            st.rerun()
+    
+    # Reporting 模块
+    st.markdown("""
+    <div class="nav-divider"></div>
+    <div class="nav-module">
+        <div class="nav-module-header expanded">
+            <span class="icon">📊</span>
+            <span>Reporting</span>
+            <span class="chevron">›</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    nav_col2 = st.container()
+    with nav_col2:
+        if st.button("📝 Summary Timeline", key="nav_timeline", use_container_width=True,
+                     type="primary" if st.session_state.current_page == "timeline" else "secondary"):
+            st.session_state.current_page = "timeline"
+            st.rerun()
+        
+        if st.button("👤 Respondent Gallery", key="nav_gallery", use_container_width=True,
+                     type="primary" if st.session_state.current_page == "gallery" else "secondary"):
+            st.session_state.current_page = "gallery"
+            st.rerun()
+    
+    # 更多分析模块
+    st.markdown("""
+    <div class="nav-divider"></div>
+    <div class="nav-module">
+        <div class="nav-module-header expanded">
+            <span class="icon">🔬</span>
+            <span>Deep Analysis</span>
+            <span class="chevron">›</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    nav_col3 = st.container()
+    with nav_col3:
+        if st.button("📊 Distribution Analysis", key="nav_distribution", use_container_width=True,
+                     type="primary" if st.session_state.current_page == "distribution" else "secondary"):
+            st.session_state.current_page = "distribution"
+            st.rerun()
+        
+        if st.button("🔀 Cross Analysis", key="nav_cross", use_container_width=True,
+                     type="primary" if st.session_state.current_page == "cross_analysis" else "secondary"):
+            st.session_state.current_page = "cross_analysis"
+            st.rerun()
+        
+        if st.button("🤖 AI Summary", key="nav_ai_summary", use_container_width=True,
+                     type="primary" if st.session_state.current_page == "ai_summary" else "secondary"):
+            st.session_state.current_page = "ai_summary"
+            st.rerun()
+        
+        if st.button("📤 Export Reports", key="nav_export", use_container_width=True,
+                     type="primary" if st.session_state.current_page == "export" else "secondary"):
+            st.session_state.current_page = "export"
+            st.rerun()
+    
+    st.markdown('<div class="nav-divider"></div>', unsafe_allow_html=True)
     
     # 全局筛选器
     st.markdown('<div class="sidebar-section-title">🎯 全局过滤</div>', unsafe_allow_html=True)
@@ -2204,14 +2636,18 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- 主逻辑 ---
-# 判断数据来源：上传文件优先，其次是 URL 获取的数据
+# 判断数据来源：上传文件优先，其次是已保存数据，最后是 URL 获取的数据
 has_url_data = 'url_df' in st.session_state and st.session_state['url_df'] is not None
+has_saved_data = 'saved_df' in st.session_state and st.session_state['saved_df'] is not None
 
-if uploaded_file or has_url_data:
+if uploaded_file or has_saved_data or has_url_data:
     # 确定文件类型和数据来源
     if uploaded_file:
         file_type = uploaded_file.name.split('.')[-1].lower()
         data_source = 'file'
+    elif has_saved_data:
+        file_type = 'csv'  # 已保存数据视为 CSV 格式
+        data_source = 'saved'
     else:
         file_type = 'csv'  # URL 数据默认为 CSV
         data_source = 'url'
@@ -2222,7 +2658,10 @@ if uploaded_file or has_url_data:
     if file_type in ['csv', 'xlsx']:
         try:
             # 根据数据来源获取 DataFrame
-            if data_source == 'url':
+            if data_source == 'saved':
+                # 使用已保存的数据
+                df = st.session_state['saved_df']
+            elif data_source == 'url':
                 # 使用从 URL 获取的数据
                 df = st.session_state['url_df']
             else:
@@ -2242,6 +2681,31 @@ if uploaded_file or has_url_data:
                 
                 # 从 session_state 获取数据
                 df = st.session_state[cache_key]
+            
+            # ==========================================
+            # 数据来源提示
+            # ==========================================
+            if data_source == 'saved':
+                saved_name = st.session_state.get('saved_df_name', '未命名')
+                st.markdown(f"""
+                <div style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="font-size: 1.25rem;">💾</span>
+                    <div>
+                        <div style="font-size: 0.9rem; font-weight: 600; color: white;">已加载保存的数据: {saved_name}</div>
+                        <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8);">{len(df)} 条记录 · {len(df.columns)} 个字段</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            elif data_source == 'url':
+                st.markdown(f"""
+                <div style="background: linear-gradient(90deg, #11998e 0%, #38ef7d 100%); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="font-size: 1.25rem;">🔗</span>
+                    <div>
+                        <div style="font-size: 0.9rem; font-weight: 600; color: white;">已从链接加载数据</div>
+                        <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8);">{len(df)} 条记录 · {len(df.columns)} 个字段</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
             
             # ==========================================
             # 顶部 KPI 仪表盘 - 核心指标一览
@@ -2342,10 +2806,33 @@ if uploaded_file or has_url_data:
             </div>
             """, unsafe_allow_html=True)
 
-            # 使用 Tabs 分割不同分析维度
-            tab1, tab2, tab3, tab4 = st.tabs(["📋 数据总览", "📈 单变量分布", "🔀 交叉分析", "🤖 AI 智能分析"])
-
-            with tab1:
+            # ========== 基于导航状态渲染不同页面 ==========
+            current_page = st.session_state.get('current_page', 'response_list')
+            
+            # 页面标题映射 - 匹配 Airtable 结构
+            page_titles = {
+                'response_list': ('📋 Response List', '查看所有调研回复数据'),
+                'kanban': ('🗂️ Segmentation Kanban', '按状态分组查看调研回复'),
+                'trends': ('📈 Trends Dashboard', '调研数据趋势与洞察'),
+                'timeline': ('📝 Summary Timeline', '调研项目时间线概览'),
+                'gallery': ('👤 Respondent Gallery', '受访者信息画廊'),
+                'distribution': ('📊 Distribution Analysis', '单变量分布分析'),
+                'cross_analysis': ('🔀 Cross Analysis', '多维交叉分析'),
+                'ai_summary': ('🤖 AI Summary', 'AI 智能分析与洞察'),
+                'export': ('📤 Export Reports', '导出分析报告')
+            }
+            
+            # 显示当前页面标题
+            page_title, page_desc = page_titles.get(current_page, ('📋 Response List', ''))
+            st.markdown(f"""
+            <div style="margin-bottom: 1.5rem;">
+                <h2 style="margin: 0; font-size: 1.5rem; font-weight: 600; color: #18181b;">{page_title}</h2>
+                <p style="margin: 0.25rem 0 0; font-size: 0.875rem; color: #71717a;">{page_desc}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # ==================== Response List 页面 ====================
+            if current_page == 'response_list':
                 st.markdown("#### 📄 原始数据预览")
                 
                 # 获取问题映射
@@ -2502,7 +2989,8 @@ if uploaded_file or has_url_data:
                 else:
                     st.success("✅ 数据质量良好,可以开始分析!")
 
-            with tab2:
+            # ==================== Distribution Analysis 页面 ====================
+            elif current_page == 'distribution':
                 st.markdown("#### 📊 单变量分布分析")
                 st.markdown("选择一个或多个变量,系统将自动生成适合的可视化图表")
                 
@@ -3590,7 +4078,8 @@ if uploaded_file or has_url_data:
                                 with st.expander("查看详细错误信息"):
                                     st.code(traceback.format_exc())
 
-            with tab3:
+            # ==================== Cross Analysis 页面 ====================
+            elif current_page == 'cross_analysis':
                 st.markdown("#### 🔀 多维交叉分析")
                 st.markdown("选择变量组合，探索数据之间的关联关系")
                 
@@ -3870,7 +4359,8 @@ if uploaded_file or has_url_data:
                 except Exception as e:
                     st.error(f"❌ 生成图表时出错: {e}")
 
-            with tab4:
+            # ==================== AI Summary 页面 ====================
+            elif current_page == 'ai_summary':
                 # 差异化价值展示
                 st.markdown("""
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem; border-radius: 15px; color: white; margin-bottom: 2rem; box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);">
@@ -4052,6 +4542,734 @@ if uploaded_file or has_url_data:
                         
                         if clear_btn:
                             st.session_state.chat_history = []
+
+            # ==================== Segmentation Kanban 页面 ====================
+            elif current_page == 'kanban':
+                st.markdown("""
+                <style>
+                .kanban-container {
+                    display: flex;
+                    gap: 1rem;
+                    overflow-x: auto;
+                    padding: 1rem 0;
+                }
+                .kanban-column {
+                    min-width: 300px;
+                    max-width: 350px;
+                    background: #f8f9fa;
+                    border-radius: 12px;
+                    padding: 1rem;
+                }
+                .kanban-header {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    margin-bottom: 1rem;
+                    padding-bottom: 0.75rem;
+                    border-bottom: 2px solid #e9ecef;
+                }
+                .kanban-badge {
+                    padding: 0.25rem 0.75rem;
+                    border-radius: 20px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                }
+                .kanban-badge.complete { background: #d4edda; color: #155724; }
+                .kanban-badge.partial { background: #fff3cd; color: #856404; }
+                .kanban-badge.disqualified { background: #f8d7da; color: #721c24; }
+                .kanban-count {
+                    margin-left: auto;
+                    background: #e9ecef;
+                    padding: 0.25rem 0.5rem;
+                    border-radius: 10px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                }
+                .kanban-card {
+                    background: white;
+                    border-radius: 8px;
+                    padding: 1rem;
+                    margin-bottom: 0.75rem;
+                    border: 1px solid #e9ecef;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+                    transition: all 0.2s ease;
+                }
+                .kanban-card:hover {
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                    transform: translateY(-2px);
+                }
+                .kanban-card-title {
+                    font-weight: 600;
+                    font-size: 0.9rem;
+                    color: #1a1a2e;
+                    margin-bottom: 0.5rem;
+                }
+                .kanban-card-field {
+                    font-size: 0.75rem;
+                    color: #6c757d;
+                    margin-bottom: 0.25rem;
+                }
+                .kanban-card-value {
+                    font-size: 0.85rem;
+                    color: #333;
+                }
+                .kanban-card-tag {
+                    display: inline-block;
+                    padding: 0.2rem 0.5rem;
+                    border-radius: 4px;
+                    font-size: 0.7rem;
+                    font-weight: 500;
+                    margin-right: 0.25rem;
+                    margin-top: 0.5rem;
+                }
+                .tag-desktop { background: #e3f2fd; color: #1565c0; }
+                .tag-mobile { background: #f3e5f5; color: #7b1fa2; }
+                .tag-tablet { background: #e8f5e9; color: #2e7d32; }
+                </style>
+                """, unsafe_allow_html=True)
+                
+                # 检测状态列
+                status_col = None
+                for col in df.columns:
+                    col_lower = str(col).lower()
+                    if any(kw in col_lower for kw in ['status', '状态', 'state', 'completion']):
+                        status_col = col
+                        break
+                
+                if status_col is None:
+                    # 如果没有状态列，创建一个基于完整度的虚拟状态
+                    st.info("💡 未检测到状态字段，将基于数据完整度自动分组")
+                    
+                    # 计算每行的完整度
+                    df_kanban = df.copy()
+                    df_kanban['_completeness'] = df_kanban.notna().sum(axis=1) / len(df_kanban.columns) * 100
+                    df_kanban['_status'] = df_kanban['_completeness'].apply(
+                        lambda x: 'Complete' if x >= 90 else ('Partial' if x >= 50 else 'Incomplete')
+                    )
+                    status_col = '_status'
+                else:
+                    df_kanban = df.copy()
+                
+                # 获取唯一状态值
+                status_values = df_kanban[status_col].fillna('Unknown').unique()
+                
+                # 状态颜色映射
+                status_colors = {
+                    'Complete': 'complete', 'complete': 'complete', '完成': 'complete', 'Completed': 'complete',
+                    'Partial': 'partial', 'partial': 'partial', '部分': 'partial', 'Incomplete': 'partial',
+                    'Disqualified': 'disqualified', 'disqualified': 'disqualified', '不合格': 'disqualified',
+                    'Unknown': 'partial'
+                }
+                
+                # 显示筛选器
+                filter_col1, filter_col2, filter_col3 = st.columns([2, 2, 2])
+                with filter_col1:
+                    selected_statuses = st.multiselect(
+                        "筛选状态",
+                        options=list(status_values),
+                        default=list(status_values),
+                        key="kanban_status_filter"
+                    )
+                
+                # 创建看板列
+                kanban_cols = st.columns(len(selected_statuses) if selected_statuses else 1)
+                
+                for idx, status in enumerate(selected_statuses):
+                    status_df = df_kanban[df_kanban[status_col] == status]
+                    color_class = status_colors.get(str(status), 'partial')
+                    
+                    with kanban_cols[idx]:
+                        # 列标题
+                        st.markdown(f"""
+                        <div class="kanban-header">
+                            <span class="kanban-badge {color_class}">{status}</span>
+                            <span class="kanban-count">{len(status_df)}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # 卡片
+                        for _, row in status_df.head(10).iterrows():
+                            # 获取显示字段
+                            card_title = str(row.iloc[0]) if len(row) > 0 else "Record"
+                            
+                            # 构建卡片内容
+                            card_fields = []
+                            for col_name in df.columns[:5]:
+                                if col_name != status_col and pd.notna(row.get(col_name)):
+                                    val = str(row[col_name])[:50]
+                                    card_fields.append(f'<div class="kanban-card-field">{col_name}</div><div class="kanban-card-value">{val}</div>')
+                            
+                            st.markdown(f"""
+                            <div class="kanban-card">
+                                <div class="kanban-card-title">{card_title[:40]}...</div>
+                                {''.join(card_fields[:3])}
+                            </div>
+                            """, unsafe_allow_html=True)
+                        
+                        if len(status_df) > 10:
+                            st.caption(f"... 还有 {len(status_df) - 10} 条记录")
+
+            # ==================== Trends Dashboard 页面 (Airtable 风格) ====================
+            elif current_page == 'trends':
+                # Airtable 风格的 KPI 卡片
+                st.markdown("""
+                <style>
+                .trends-kpi-row {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 1rem;
+                    margin-bottom: 2rem;
+                }
+                .trends-kpi-card {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    border-radius: 12px;
+                    padding: 1.25rem;
+                    color: white;
+                    position: relative;
+                    overflow: hidden;
+                }
+                .trends-kpi-card::after {
+                    content: '↗';
+                    position: absolute;
+                    top: 1rem;
+                    right: 1rem;
+                    font-size: 1rem;
+                    opacity: 0.7;
+                }
+                .trends-kpi-card.green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+                .trends-kpi-card.blue { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+                .trends-kpi-card.orange { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+                .trends-kpi-label {
+                    font-size: 0.85rem;
+                    opacity: 0.9;
+                    margin-bottom: 0.5rem;
+                }
+                .trends-kpi-value {
+                    font-size: 2.5rem;
+                    font-weight: 700;
+                    line-height: 1;
+                }
+                .trends-kpi-unit {
+                    font-size: 1rem;
+                    opacity: 0.8;
+                    margin-left: 0.25rem;
+                }
+                </style>
+                """, unsafe_allow_html=True)
+                
+                # 计算 KPI
+                total_responses = len(df)
+                completion_rate = (1 - df.isnull().sum().sum() / (df.shape[0] * df.shape[1])) * 100
+                
+                # 检测完成时间列
+                time_col = None
+                for col in df.columns:
+                    col_lower = str(col).lower()
+                    if any(kw in col_lower for kw in ['time', 'duration', '时间', '时长', 'minutes']):
+                        if df[col].dtype in ['int64', 'float64']:
+                            time_col = col
+                            break
+                
+                avg_time = df[time_col].mean() if time_col else 0
+                
+                # 检测质量列
+                quality_count = 0
+                for col in df.columns:
+                    col_lower = str(col).lower()
+                    if any(kw in col_lower for kw in ['quality', '质量', 'good', 'high']):
+                        quality_count = df[col].notna().sum()
+                        break
+                
+                # KPI 卡片行
+                kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
+                
+                with kpi_col1:
+                    st.markdown(f"""
+                    <div class="trends-kpi-card">
+                        <div class="trends-kpi-label">Total Survey Responses</div>
+                        <div class="trends-kpi-value">{total_responses}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with kpi_col2:
+                    st.markdown(f"""
+                    <div class="trends-kpi-card green">
+                        <div class="trends-kpi-label">Response Completion Rate</div>
+                        <div class="trends-kpi-value">{completion_rate:.0f}<span class="trends-kpi-unit">%</span></div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with kpi_col3:
+                    st.markdown(f"""
+                    <div class="trends-kpi-card blue">
+                        <div class="trends-kpi-label">Average Completion Time</div>
+                        <div class="trends-kpi-value">{avg_time:.0f}<span class="trends-kpi-unit">min</span></div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with kpi_col4:
+                    st.markdown(f"""
+                    <div class="trends-kpi-card orange">
+                        <div class="trends-kpi-label">High Quality Responses</div>
+                        <div class="trends-kpi-value">{quality_count}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                # 图表区域
+                chart_col1, chart_col2 = st.columns(2)
+                
+                with chart_col1:
+                    st.markdown("##### Responses by Status")
+                    # 检测状态列
+                    status_col = None
+                    for col in df.columns:
+                        col_lower = str(col).lower()
+                        if any(kw in col_lower for kw in ['status', '状态']):
+                            status_col = col
+                            break
+                    
+                    if status_col:
+                        status_counts = df[status_col].value_counts()
+                        fig_status = px.bar(
+                            x=status_counts.index,
+                            y=status_counts.values,
+                            color=status_counts.index,
+                            color_discrete_sequence=['#667eea', '#f5576c', '#ffc107']
+                        )
+                        fig_status.update_layout(
+                            showlegend=False,
+                            template='plotly_white',
+                            xaxis_title='Status',
+                            yaxis_title='Number of Responses',
+                            height=300
+                        )
+                        st.plotly_chart(fig_status, use_container_width=True)
+                    else:
+                        # 基于完整度创建状态
+                        completeness_per_row = df.notna().sum(axis=1) / len(df.columns) * 100
+                        status_data = pd.cut(completeness_per_row, bins=[0, 50, 90, 100], labels=['Incomplete', 'Partial', 'Complete'])
+                        status_counts = status_data.value_counts()
+                        fig_status = px.bar(
+                            x=status_counts.index,
+                            y=status_counts.values,
+                            color=status_counts.index,
+                            color_discrete_sequence=['#f5576c', '#ffc107', '#667eea']
+                        )
+                        fig_status.update_layout(
+                            showlegend=False,
+                            template='plotly_white',
+                            xaxis_title='Status',
+                            yaxis_title='Number of Responses',
+                            height=300
+                        )
+                        st.plotly_chart(fig_status, use_container_width=True)
+                
+                with chart_col2:
+                    st.markdown("##### Device Type Usage")
+                    # 检测设备类型列
+                    device_col = None
+                    for col in df.columns:
+                        col_lower = str(col).lower()
+                        if any(kw in col_lower for kw in ['device', '设备', 'platform', 'type']):
+                            device_col = col
+                            break
+                    
+                    if device_col:
+                        device_counts = df[device_col].value_counts()
+                        fig_device = px.pie(
+                            values=device_counts.values,
+                            names=device_counts.index,
+                            color_discrete_sequence=['#667eea', '#11998e', '#f5576c']
+                        )
+                        fig_device.update_layout(height=300)
+                        st.plotly_chart(fig_device, use_container_width=True)
+                    else:
+                        st.info("未检测到设备类型字段")
+                
+                # 时间趋势图
+                st.markdown("##### Survey Responses Over Time")
+                date_cols = []
+                for col in df.columns:
+                    col_lower = str(col).lower()
+                    if any(kw in col_lower for kw in ['date', 'time', '日期', '时间', 'created', 'submitted']):
+                        date_cols.append(col)
+                
+                if date_cols:
+                    selected_date_col = st.selectbox("选择时间字段", date_cols, key="trends_date_col")
+                    try:
+                        df_trends = df.copy()
+                        df_trends[selected_date_col] = pd.to_datetime(df_trends[selected_date_col], errors='coerce')
+                        df_trends = df_trends.dropna(subset=[selected_date_col])
+                        
+                        if len(df_trends) > 0:
+                            df_trends['date_only'] = df_trends[selected_date_col].dt.date
+                            daily_counts = df_trends.groupby('date_only').size().reset_index(name='count')
+                            daily_counts['date_only'] = pd.to_datetime(daily_counts['date_only'])
+                            
+                            fig_trend = px.area(
+                                daily_counts, 
+                                x='date_only', 
+                                y='count',
+                                labels={'date_only': 'Submission Date', 'count': 'Number of Responses'}
+                            )
+                            fig_trend.update_layout(
+                                template='plotly_white',
+                                hovermode='x unified',
+                                height=250
+                            )
+                            fig_trend.update_traces(fill='tozeroy', line_color='#667eea')
+                            st.plotly_chart(fig_trend, use_container_width=True)
+                    except Exception as e:
+                        st.warning(f"日期解析错误: {e}")
+                else:
+                    st.info("未检测到时间字段，无法显示时间趋势")
+
+            # ==================== Summary Timeline 页面 ====================
+            elif current_page == 'timeline':
+                st.markdown("""
+                <style>
+                .timeline-container {
+                    position: relative;
+                    padding: 1rem 0;
+                }
+                .timeline-item {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 1rem;
+                    padding: 1rem;
+                    margin-bottom: 0.5rem;
+                    background: white;
+                    border-radius: 8px;
+                    border-left: 4px solid #667eea;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                }
+                .timeline-item.active { border-left-color: #11998e; }
+                .timeline-item.closed { border-left-color: #6c757d; }
+                .timeline-dot {
+                    width: 12px;
+                    height: 12px;
+                    border-radius: 50%;
+                    background: #667eea;
+                    margin-top: 0.25rem;
+                    flex-shrink: 0;
+                }
+                .timeline-dot.active { background: #11998e; }
+                .timeline-dot.closed { background: #6c757d; }
+                .timeline-content {
+                    flex: 1;
+                }
+                .timeline-title {
+                    font-weight: 600;
+                    font-size: 1rem;
+                    color: #1a1a2e;
+                    margin-bottom: 0.25rem;
+                }
+                .timeline-desc {
+                    font-size: 0.85rem;
+                    color: #6c757d;
+                    margin-bottom: 0.5rem;
+                }
+                .timeline-meta {
+                    display: flex;
+                    gap: 1rem;
+                    font-size: 0.75rem;
+                    color: #adb5bd;
+                }
+                .timeline-status {
+                    padding: 0.2rem 0.5rem;
+                    border-radius: 4px;
+                    font-size: 0.7rem;
+                    font-weight: 600;
+                }
+                .status-active { background: #d4edda; color: #155724; }
+                .status-closed { background: #e9ecef; color: #495057; }
+                </style>
+                """, unsafe_allow_html=True)
+                
+                st.markdown("#### 📝 调研项目时间线")
+                st.markdown("查看所有调研项目的时间安排和状态")
+                
+                # 尝试检测调研标题列
+                title_col = None
+                for col in df.columns:
+                    col_lower = str(col).lower()
+                    if any(kw in col_lower for kw in ['title', 'survey', 'name', '标题', '名称', '调研']):
+                        title_col = col
+                        break
+                
+                if title_col:
+                    # 按调研标题分组
+                    survey_groups = df.groupby(title_col).agg({
+                        df.columns[0]: 'count'
+                    }).reset_index()
+                    survey_groups.columns = [title_col, 'response_count']
+                    
+                    for idx, row in survey_groups.iterrows():
+                        status = 'Active' if idx % 2 == 0 else 'Closed'
+                        status_class = 'active' if status == 'Active' else 'closed'
+                        
+                        st.markdown(f"""
+                        <div class="timeline-item {status_class}">
+                            <div class="timeline-dot {status_class}"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">{row[title_col]}</div>
+                                <div class="timeline-desc">共收集 {row['response_count']} 条回复</div>
+                                <div class="timeline-meta">
+                                    <span class="timeline-status status-{status_class}">{status}</span>
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    # 如果没有标题列，显示数据摘要时间线
+                    st.markdown(f"""
+                    <div class="timeline-item active">
+                        <div class="timeline-dot active"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">当前调研数据</div>
+                            <div class="timeline-desc">共 {len(df)} 条回复，{len(df.columns)} 个字段</div>
+                            <div class="timeline-meta">
+                                <span class="timeline-status status-active">Active</span>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    st.info("💡 提示：上传包含调研标题字段的数据可以显示更详细的时间线")
+
+            # ==================== Respondent Gallery 页面 ====================
+            elif current_page == 'gallery':
+                st.markdown("""
+                <style>
+                .gallery-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                    gap: 1.5rem;
+                    padding: 1rem 0;
+                }
+                .gallery-card {
+                    background: white;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                    transition: all 0.3s ease;
+                }
+                .gallery-card:hover {
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+                    transform: translateY(-4px);
+                }
+                .gallery-image {
+                    height: 160px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 4rem;
+                }
+                .gallery-image.alt1 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+                .gallery-image.alt2 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+                .gallery-image.alt3 { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+                .gallery-content {
+                    padding: 1.25rem;
+                }
+                .gallery-name {
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    color: #1a1a2e;
+                    margin-bottom: 0.75rem;
+                }
+                .gallery-field {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 0.4rem 0;
+                    border-bottom: 1px solid #f0f0f0;
+                }
+                .gallery-field:last-child { border-bottom: none; }
+                .gallery-field-label {
+                    font-size: 0.75rem;
+                    color: #6c757d;
+                }
+                .gallery-field-value {
+                    font-size: 0.85rem;
+                    color: #333;
+                    font-weight: 500;
+                }
+                .gallery-tag {
+                    display: inline-block;
+                    padding: 0.25rem 0.75rem;
+                    border-radius: 20px;
+                    font-size: 0.75rem;
+                    font-weight: 500;
+                    margin-top: 0.5rem;
+                }
+                .tag-female { background: #fce4ec; color: #c2185b; }
+                .tag-male { background: #e3f2fd; color: #1565c0; }
+                .tag-other { background: #f3e5f5; color: #7b1fa2; }
+                </style>
+                """, unsafe_allow_html=True)
+                
+                st.markdown("#### 👤 受访者画廊")
+                st.markdown("以卡片形式浏览受访者信息")
+                
+                # 筛选器
+                filter_col1, filter_col2 = st.columns([1, 1])
+                
+                # 检测可能的筛选字段
+                gender_col = None
+                for col in df.columns:
+                    col_lower = str(col).lower()
+                    if any(kw in col_lower for kw in ['gender', '性别', 'sex']):
+                        gender_col = col
+                        break
+                
+                with filter_col1:
+                    if gender_col:
+                        gender_options = ['全部'] + list(df[gender_col].dropna().unique())
+                        selected_gender = st.selectbox("筛选性别", gender_options, key="gallery_gender_filter")
+                
+                # 应用筛选
+                display_df = df.copy()
+                if gender_col and 'selected_gender' in dir() and selected_gender != '全部':
+                    display_df = display_df[display_df[gender_col] == selected_gender]
+                
+                # 分页
+                items_per_page = 9
+                total_pages = (len(display_df) - 1) // items_per_page + 1
+                
+                page_col1, page_col2, page_col3 = st.columns([1, 2, 1])
+                with page_col2:
+                    current_gallery_page = st.number_input(
+                        f"页码 (共 {total_pages} 页)",
+                        min_value=1,
+                        max_value=max(1, total_pages),
+                        value=1,
+                        key="gallery_page"
+                    )
+                
+                start_idx = (current_gallery_page - 1) * items_per_page
+                end_idx = start_idx + items_per_page
+                page_df = display_df.iloc[start_idx:end_idx]
+                
+                # 显示卡片
+                cols = st.columns(3)
+                color_variants = ['', 'alt1', 'alt2', 'alt3']
+                
+                for idx, (_, row) in enumerate(page_df.iterrows()):
+                    col_idx = idx % 3
+                    color_class = color_variants[idx % 4]
+                    
+                    # 获取显示字段
+                    name_col = None
+                    for col in df.columns:
+                        col_lower = str(col).lower()
+                        if any(kw in col_lower for kw in ['name', 'respondent', '姓名', '名字', '受访者']):
+                            name_col = col
+                            break
+                    
+                    display_name = str(row[name_col]) if name_col and pd.notna(row.get(name_col)) else f"Respondent {idx + 1}"
+                    
+                    # 性别标签
+                    gender_tag = ""
+                    if gender_col and pd.notna(row.get(gender_col)):
+                        gender_val = str(row[gender_col]).lower()
+                        if 'female' in gender_val or '女' in gender_val:
+                            gender_tag = '<span class="gallery-tag tag-female">Female</span>'
+                        elif 'male' in gender_val or '男' in gender_val:
+                            gender_tag = '<span class="gallery-tag tag-male">Male</span>'
+                        else:
+                            gender_tag = f'<span class="gallery-tag tag-other">{row[gender_col]}</span>'
+                    
+                    # 构建字段列表
+                    fields_html = ""
+                    shown_cols = [c for c in df.columns if c not in [name_col, gender_col]][:4]
+                    for col in shown_cols:
+                        if pd.notna(row.get(col)):
+                            val = str(row[col])[:30]
+                            fields_html += f'''
+                            <div class="gallery-field">
+                                <span class="gallery-field-label">{col}</span>
+                                <span class="gallery-field-value">{val}</span>
+                            </div>
+                            '''
+                    
+                    with cols[col_idx]:
+                        st.markdown(f"""
+                        <div class="gallery-card">
+                            <div class="gallery-image {color_class}">👤</div>
+                            <div class="gallery-content">
+                                <div class="gallery-name">{display_name}</div>
+                                {gender_tag}
+                                {fields_html}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                
+                st.caption(f"显示 {start_idx + 1}-{min(end_idx, len(display_df))} / 共 {len(display_df)} 条记录")
+
+            # ==================== Export Reports 页面 ====================
+            elif current_page == 'export':
+                st.markdown("#### 📤 导出分析报告")
+                st.markdown("将分析结果导出为专业报告")
+                
+                # 导出选项
+                export_col1, export_col2 = st.columns([2, 1])
+                
+                with export_col1:
+                    st.markdown("##### 选择导出内容")
+                    export_data_overview = st.checkbox("📋 数据概览", value=True, key="export_data_overview")
+                    export_distribution = st.checkbox("📊 分布分析", value=True, key="export_distribution")
+                    export_cross = st.checkbox("🔀 交叉分析", value=False, key="export_cross")
+                    export_ai = st.checkbox("🤖 AI 洞察", value=False, key="export_ai")
+                
+                with export_col2:
+                    st.markdown("##### 导出格式")
+                    export_format_choice = st.radio(
+                        "选择格式",
+                        ["Word (.docx)", "PPT (.pptx)", "PDF (.pdf)", "Excel (.xlsx)"],
+                        key="export_format_choice"
+                    )
+                
+                st.markdown("---")
+                
+                # 快速导出按钮
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    # CSV 下载
+                    csv_data = df.to_csv(index=False).encode('utf-8-sig')
+                    st.download_button(
+                        label="📥 下载原始数据 (CSV)",
+                        data=csv_data,
+                        file_name=f"survey_data_{datetime.now().strftime('%Y%m%d')}.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
+                
+                with col2:
+                    # Excel 下载
+                    try:
+                        excel_buffer = BytesIO()
+                        with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
+                            df.to_excel(writer, index=False, sheet_name='Survey Data')
+                        excel_data = excel_buffer.getvalue()
+                        st.download_button(
+                            label="📥 下载数据 (Excel)",
+                            data=excel_data,
+                            file_name=f"survey_data_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            use_container_width=True
+                        )
+                    except Exception as e:
+                        st.button("📥 下载数据 (Excel)", disabled=True, use_container_width=True)
+                        st.caption(f"Excel 导出不可用: {e}")
+                
+                with col3:
+                    if st.button("📊 生成完整报告", type="primary", use_container_width=True, key="generate_full_report"):
+                        st.info("🔄 报告生成功能正在开发中...")
+                
+                # 数据预览
+                st.markdown("##### 📋 数据预览")
+                st.dataframe(df.head(10), use_container_width=True)
 
         except Exception as e:
             st.error(f"表格读取错误: {e}")
