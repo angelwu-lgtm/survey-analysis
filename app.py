@@ -2162,49 +2162,56 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    # MENU 分组
-    st.markdown('<div class="nav-section-title">MENU</div>', unsafe_allow_html=True)
+    # Survey Insights 模块
+    st.markdown('<div class="nav-section-title">ANALYSIS</div>', unsafe_allow_html=True)
     
-    # 主导航按钮
-    if st.button("📋 数据总览", key="nav_response_list", use_container_width=True, 
+    if st.button("📋 Response List", key="nav_response_list", use_container_width=True, 
                  type="primary" if st.session_state.current_page == "response_list" else "secondary"):
         st.session_state.current_page = "response_list"
         st.rerun()
     
-    if st.button("📊 分布分析", key="nav_distribution", use_container_width=True,
-                 type="primary" if st.session_state.current_page == "distribution" else "secondary"):
-        st.session_state.current_page = "distribution"
-        st.rerun()
-    
-    if st.button("🔀 交叉分析", key="nav_cross", use_container_width=True,
-                 type="primary" if st.session_state.current_page == "cross_analysis" else "secondary"):
-        st.session_state.current_page = "cross_analysis"
-        st.rerun()
-    
-    if st.button("👤 受访者画廊", key="nav_gallery", use_container_width=True,
-                 type="primary" if st.session_state.current_page == "gallery" else "secondary"):
-        st.session_state.current_page = "gallery"
-        st.rerun()
-    
-    # OTHERS 分组
-    st.markdown('<div class="nav-section-title">OTHERS</div>', unsafe_allow_html=True)
-    
-    if st.button("🗂️ 看板视图", key="nav_kanban", use_container_width=True,
+    if st.button("🗂️ Segmentation Kanban", key="nav_kanban", use_container_width=True,
                  type="primary" if st.session_state.current_page == "kanban" else "secondary"):
         st.session_state.current_page = "kanban"
         st.rerun()
     
-    if st.button("📈 趋势分析", key="nav_trends", use_container_width=True,
+    if st.button("📈 Trends Dashboard", key="nav_trends", use_container_width=True,
                  type="primary" if st.session_state.current_page == "trends" else "secondary"):
         st.session_state.current_page = "trends"
         st.rerun()
     
-    if st.button("🤖 AI 洞察", key="nav_ai_summary", use_container_width=True,
+    # Reporting 模块
+    st.markdown('<div class="nav-section-title">REPORTING</div>', unsafe_allow_html=True)
+    
+    if st.button("📝 Summary Timeline", key="nav_timeline", use_container_width=True,
+                 type="primary" if st.session_state.current_page == "timeline" else "secondary"):
+        st.session_state.current_page = "timeline"
+        st.rerun()
+    
+    if st.button("👤 Respondent Gallery", key="nav_gallery", use_container_width=True,
+                 type="primary" if st.session_state.current_page == "gallery" else "secondary"):
+        st.session_state.current_page = "gallery"
+        st.rerun()
+    
+    # Deep Analysis 模块
+    st.markdown('<div class="nav-section-title">DEEP ANALYSIS</div>', unsafe_allow_html=True)
+    
+    if st.button("📊 Distribution Analysis", key="nav_distribution", use_container_width=True,
+                 type="primary" if st.session_state.current_page == "distribution" else "secondary"):
+        st.session_state.current_page = "distribution"
+        st.rerun()
+    
+    if st.button("🔀 Cross Analysis", key="nav_cross", use_container_width=True,
+                 type="primary" if st.session_state.current_page == "cross_analysis" else "secondary"):
+        st.session_state.current_page = "cross_analysis"
+        st.rerun()
+    
+    if st.button("🤖 AI Summary", key="nav_ai_summary", use_container_width=True,
                  type="primary" if st.session_state.current_page == "ai_summary" else "secondary"):
         st.session_state.current_page = "ai_summary"
         st.rerun()
     
-    if st.button("📤 导出报告", key="nav_export", use_container_width=True,
+    if st.button("📤 Export Reports", key="nav_export", use_container_width=True,
                  type="primary" if st.session_state.current_page == "export" else "secondary"):
         st.session_state.current_page = "export"
         st.rerun()
