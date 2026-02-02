@@ -2025,15 +2025,41 @@ with st.sidebar:
         padding: 0.75rem !important;
     }
     
-    /* 侧边栏 expander 内的文字 */
+    /* 侧边栏 expander 内的所有文字 - 强制白色 */
     [data-testid="stSidebar"] .streamlit-expanderContent p,
     [data-testid="stSidebar"] .streamlit-expanderContent span,
-    [data-testid="stSidebar"] .streamlit-expanderContent label {
+    [data-testid="stSidebar"] .streamlit-expanderContent label,
+    [data-testid="stSidebar"] .streamlit-expanderContent div,
+    [data-testid="stSidebar"] [data-testid="stExpander"] p,
+    [data-testid="stSidebar"] [data-testid="stExpander"] span,
+    [data-testid="stSidebar"] [data-testid="stExpander"] label {
         color: white !important;
     }
     
-    [data-testid="stSidebar"] .streamlit-expanderContent strong {
+    [data-testid="stSidebar"] .streamlit-expanderContent strong,
+    [data-testid="stSidebar"] [data-testid="stExpander"] strong {
         color: #FFD700 !important;
+    }
+    
+    /* expander 标题文字 */
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary,
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary span,
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary p {
+        color: white !important;
+        font-weight: 500 !important;
+    }
+    
+    /* expander 内的 markdown 文字 */
+    [data-testid="stSidebar"] [data-testid="stExpander"] .stMarkdown,
+    [data-testid="stSidebar"] [data-testid="stExpander"] .stMarkdown p,
+    [data-testid="stSidebar"] [data-testid="stExpander"] .stMarkdown span {
+        color: white !important;
+    }
+    
+    /* expander 内的 caption */
+    [data-testid="stSidebar"] [data-testid="stExpander"] .stCaption,
+    [data-testid="stSidebar"] [data-testid="stExpander"] small {
+        color: rgba(255, 255, 255, 0.8) !important;
     }
     
     /* 侧边栏输入框样式 - 透明背景（与上传区域一致） */
