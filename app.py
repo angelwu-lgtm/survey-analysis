@@ -3611,8 +3611,7 @@ if uploaded_file or has_saved_data or has_url_data:
                                                 st.info("智能模式将自动识别 'A. xxx,B. xxx' 或 '选项1,选项2' 格式")
                                         
                                         # 拆分多选答案
-                                        all_choices = []
-                                        respondent_choices = []  # 每个受访者的选择列表
+                                        respondent_choice_lists = []
                                         
                                         def smart_split_options(val_str):
                                             """智能拆分多选答案，正确处理括号内的逗号"""
@@ -3680,18 +3679,114 @@ if uploaded_file or has_saved_data or has_url_data:
                                             else:
                                                 choices = [c.strip() for c in val_str.split(separator) if c.strip()]
                                             
-                                            all_choices.extend(choices)
                                             if choices:
-                                                respondent_choices.append(set(choices))
+                                                respondent_choice_lists.append(choices)
+                                        
+                                        def merge_always_together(choice_lists):
+                                            """合并总是一起出现的片段（处理选项内部逗号）"""
+                                            if not choice_lists:
+                                                return choice_lists
+                                            
+                                            from collections import defaultdict
+                                            choice_to_resp = defaultdict(set)
+                                            for i, choices in enumerate(choice_lists):
+                                                for c in set(choices):
+                                                    choice_to_resp[c].add(i)
+                                            
+                                            grouped = defaultdict(list)
+                                            for c, idxs in choice_to_resp.items():
+                                                grouped[frozenset(idxs)].append(c)
+                                            
+                                            merge_map = {}
+                                            for _, group_choices in grouped.items():
+                                                if len(group_choices) < 2:
+                                                    continue
+                                                
+                                                merged_sequence = None
+                                                for resp_choices in choice_lists:
+                                                    if all(c in resp_choices for c in group_choices):
+                                                        indices = [resp_choices.index(c) for c in group_choices]
+                                                        if len(set(indices)) == len(group_choices) and max(indices) - min(indices) == len(group_choices) - 1:
+                                                            merged_sequence = [c for _, c in sorted(zip(indices, group_choices))]
+                                                            break
+                                                
+                                                if merged_sequence:
+                                                    merged_label = ", ".join(merged_sequence)
+                                                    for c in group_choices:
+                                                        merge_map[c] = merged_label
+                                            
+                                            if not merge_map:
+                                                return choice_lists
+                                            
+                                            merged_lists = []
+                                            for resp_choices in choice_lists:
+                                                merged = []
+                                                seen = set()
+                                                for c in resp_choices:
+                                                    c2 = merge_map.get(c, c)
+                                                    if c2 not in seen:
+                                                        merged.append(c2)
+                                                        seen.add(c2)
+                                                merged_lists.append(merged)
+                                            return merged_lists
+                                        
+                                        def normalize_other_choice(choice):
+                                            """识别并规范化“其他/Other”选项，同时提取描述"""
+                                            raw = str(choice).strip()
+                                            if not raw:
+                                                return raw, None
+                                            
+                                            if re.match(r'^(other|其它|其他)\b', raw, flags=re.IGNORECASE):
+                                                detail = None
+                                                sep_match = re.search(r'[:：\-–—]\s*(.+)$', raw)
+                                                if sep_match:
+                                                    detail = sep_match.group(1).strip()
+                                                else:
+                                                    paren_match = re.match(r'^(?:other|其它|其他)\s*\(.*?\)\s*(.+)$', raw, flags=re.IGNORECASE)
+                                                    if paren_match:
+                                                        detail = paren_match.group(1).strip()
+                                                return "其他", detail
+                                            
+                                            return raw, None
+                                        
+                                        respondent_choice_lists = merge_always_together(respondent_choice_lists)
+                                        
+                                        all_choices = []
+                                        respondent_choices = []  # 每个受访者的选择集合
+                                        other_details = []
+                                        
+                                        for choices in respondent_choice_lists:
+                                            normalized = []
+                                            for c in choices:
+                                                normalized_choice, detail = normalize_other_choice(c)
+                                                normalized.append(normalized_choice)
+                                                if detail:
+                                                    other_details.append(detail)
+                                            
+                                            # 去重并保留顺序
+                                            deduped = []
+                                            seen = set()
+                                            for c in normalized:
+                                                if c not in seen and c:
+                                                    deduped.append(c)
+                                                    seen.add(c)
+                                            
+                                            if deduped:
+                                                all_choices.extend(deduped)
+                                                respondent_choices.append(set(deduped))
                                         
                                         # 统计各选项被选次数
                                         from collections import Counter
                                         choice_counts = Counter(all_choices)
                                         total_respondents = len(respondent_choices)
                                         
+                                        if total_respondents == 0:
+                                            st.info("未检测到可用的多选答案")
+                                        
                                         # 创建选项频次表
+                                        denom = total_respondents if total_respondents > 0 else 1
                                         choice_df = pd.DataFrame([
-                                            {'选项': k, '选择人数': v, '选择率': f"{v/total_respondents*100:.1f}%"} 
+                                            {'选项': k, '选择人数': v, '选择率': f"{v/denom*100:.1f}%"} 
                                             for k, v in choice_counts.most_common()
                                         ])
                                         
@@ -3732,8 +3827,22 @@ if uploaded_file or has_saved_data or has_url_data:
                                             )
                                             st.plotly_chart(fig_choice, use_container_width=True)
                                             
-                                            # 显示详细数据表
-                                            st.dataframe(choice_df[['选项', '选择人数', '选择率']], use_container_width=True, hide_index=True)
+                                        # 显示详细数据表
+                                        st.dataframe(choice_df[['选项', '选择人数', '选择率']], use_container_width=True, hide_index=True)
+                                        
+                                        # 其他选项详情
+                                        if other_details or ("其他" in choice_counts):
+                                            st.markdown("---")
+                                            st.markdown("#### 📝 其他选项详情")
+                                            if other_details:
+                                                other_detail_counts = Counter(other_details)
+                                                other_detail_df = pd.DataFrame([
+                                                    {'其他内容': k, '提及次数': v} 
+                                                    for k, v in other_detail_counts.most_common()
+                                                ])
+                                                st.dataframe(other_detail_df, use_container_width=True, hide_index=True)
+                                            else:
+                                                st.info("有受访者选择了“其他”，但未提供具体说明")
                                         
                                         # 选项组合分析
                                         st.markdown("---")
