@@ -3736,16 +3736,16 @@ if uploaded_file or has_saved_data or has_url_data:
                                             if not raw:
                                                 return raw, None
                                             
-                                            if re.match(r'^(other|其它|其他)\b', raw, flags=re.IGNORECASE):
+                                            if re.match(r'^(other|其它|其他)(?:\s*[:：\-–—]|\s*\(|\s*$)', raw, flags=re.IGNORECASE):
                                                 detail = None
                                                 sep_match = re.search(r'[:：\-–—]\s*(.+)$', raw)
                                                 if sep_match:
                                                     detail = sep_match.group(1).strip()
                                                 else:
-                                                    paren_match = re.match(r'^(?:other|其它|其他)\s*\(.*?\)\s*(.+)$', raw, flags=re.IGNORECASE)
+                                                    paren_match = re.match(r'^(?:other|其它|其他)\s*\((.+)\)\s*$', raw, flags=re.IGNORECASE)
                                                     if paren_match:
                                                         detail = paren_match.group(1).strip()
-                                                return "其他", detail
+                                                return "Other", detail
                                             
                                             return raw, None
                                         
@@ -3831,7 +3831,7 @@ if uploaded_file or has_saved_data or has_url_data:
                                         st.dataframe(choice_df[['选项', '选择人数', '选择率']], use_container_width=True, hide_index=True)
                                         
                                         # 其他选项详情
-                                        if other_details or ("其他" in choice_counts):
+                                        if other_details or ("Other" in choice_counts):
                                             st.markdown("---")
                                             st.markdown("#### 📝 其他选项详情")
                                             if other_details:
